@@ -14,6 +14,7 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { usePrices } from './hooks/usePrices'
 import { DEFAULTS } from './data/defaults'
 import { Ticker } from './components/Ticker'
+import { BottomNav } from './components/BottomNav'
 import { getDueInstances } from './utils'
 
 export default function App() {
@@ -165,6 +166,7 @@ export default function App() {
           {page === 'schedules'  && <Schedules  {...pageProps} />}
         </main>
       </div>
+      <BottomNav page={page} setPage={setPage} />
     </div>
   )
 }

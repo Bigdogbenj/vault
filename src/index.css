@@ -540,3 +540,149 @@ input[type=range]::-webkit-slider-thumb {
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
 .mt-4 { margin-top: 16px; }
+
+/* ── Bottom nav: hidden on desktop ──────────────────────────────────────── */
+.bottom-nav { display: none; }
+.topbar-mobile-logo { display: none; }
+
+/* ── Mobile responsive (≤ 768px) ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --bottom-nav-height: 64px;
+  }
+
+  /* Hide sidebar, show bottom nav */
+  .sidebar { display: none; }
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    align-items: stretch;
+    justify-content: space-around;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 500;
+    border: none;
+    background: none;
+    font-family: 'Manrope', sans-serif;
+    transition: color 0.12s;
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .bottom-nav-item.active { color: var(--amber); }
+  .bottom-nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  /* Topbar: full width, show logo, hide desktop title & rate */
+  .topbar {
+    left: 0;
+    padding: 0 16px;
+  }
+  .topbar-desktop-title { display: none; }
+  .topbar-mobile-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar-rate { display: none; }
+  .live-label { display: none; }
+
+  /* Ticker: full width */
+  .ticker-strip { left: 0; }
+  .ticker-item { font-size: 10.5px; padding: 0 14px; }
+
+  /* Main content: no sidebar offset, add bottom padding for nav */
+  .main-content {
+    margin-left: 0;
+    padding: 14px;
+    padding-bottom: calc(var(--bottom-nav-height) + 14px);
+    min-height: calc(100vh - var(--topbar-height) - var(--ticker-height));
+  }
+
+  /* Grids: 2-column for 4-col stat rows, single column for content grids */
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+
+  /* Cards: reduced padding */
+  .card { padding: 14px; }
+  .stat-card { padding: 14px; }
+
+  /* Stat values slightly smaller */
+  .stat-value { font-size: 20px; }
+
+  /* Page header */
+  .page-title { font-size: 18px; }
+  .page-header { flex-wrap: wrap; gap: 8px; }
+
+  /* Buttons: minimum 44px tap target */
+  .btn { min-height: 44px; padding: 10px 16px; font-size: 13px; }
+  .btn-sm { min-height: 38px; padding: 8px 12px; font-size: 12px; }
+  .icon-btn { width: 36px; height: 36px; }
+
+  /* Tables: horizontal scroll */
+  .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 580px; font-size: 12.5px; }
+  th { padding: 7px 10px; }
+  td { padding: 9px 10px; }
+
+  /* Forms: single column */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* Modals: full-width bottom sheet */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal,
+  .modal-sm,
+  .modal-lg,
+  .modal-xl {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 18px 18px 0 0;
+    max-height: 88vh;
+    padding: 22px 18px 28px;
+  }
+  @keyframes modal-slide-up {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Dashboard hero card: stack on mobile */
+  .dash-hero-inner {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .dash-hero-inner > div:last-child {
+    text-align: left !important;
+  }
+
+  /* Section headers: allow wrapping */
+  .section-header { flex-wrap: wrap; gap: 6px; }
+
+  /* Tabs: smaller */
+  .tab { padding: 6px 12px; font-size: 12px; }
+
+  /* Page gap tighter */
+  .page { gap: 14px; }
+}

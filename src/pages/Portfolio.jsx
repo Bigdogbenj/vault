@@ -134,7 +134,7 @@ function AssetTable({ headers, children, onAdd }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
         <button className="btn btn-ghost btn-sm" onClick={onAdd}>+ Add</button>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-scroll-wrapper" style={{ overflowX: 'auto' }}>
         <table>
           <thead>
             <tr>

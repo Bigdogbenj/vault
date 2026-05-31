@@ -101,7 +101,7 @@ export function Dashboard({ data, updateData, prices }) {
     <div className="page">
       {/* Header: greeting + clock + weather */}
       <div className="card" style={{ background: 'linear-gradient(135deg, #191c22 0%, #14161a 100%)', borderColor: 'rgba(240,165,0,0.12)', padding: '20px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+        <div className="dash-hero-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
             <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{greeting}</div>
             <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 5 }}>Here's your financial overview</div>
