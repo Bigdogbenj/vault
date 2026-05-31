@@ -541,6 +541,13 @@ input[type=range]::-webkit-slider-thumb {
 .mt-3 { margin-top: 12px; }
 .mt-4 { margin-top: 16px; }
 
+/* ── Sync indicator ─────────────────────────────────────────────────────── */
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.sync-pulse { animation: sync-pulse 1.4s ease-in-out infinite; }
+
 /* ── Bottom nav: hidden on desktop ──────────────────────────────────────── */
 .bottom-nav { display: none; }
 .topbar-mobile-logo { display: none; }

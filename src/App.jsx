@@ -10,7 +10,7 @@ import { Calculator } from './pages/Calculator'
 import { Projects } from './pages/Projects'
 import { Debts } from './pages/Debts'
 import { Schedules } from './pages/Schedules'
-import { useLocalStorage } from './hooks/useLocalStorage'
+import { useSupabaseData } from './hooks/useSupabaseData'
 import { usePrices } from './hooks/usePrices'
 import { DEFAULTS } from './data/defaults'
 import { Ticker } from './components/Ticker'
@@ -19,10 +19,12 @@ import { getDueInstances } from './utils'
 
 export default function App() {
   const [page, setPage] = useState('dashboard')
-  const [data, setData] = useLocalStorage('vault-v1', DEFAULTS)
+  const [data, setData, syncStatus, supabaseReady] = useSupabaseData('vault-v1', DEFAULTS)
 
   // ── Migration: backfill fields added after initial release ──────────────────
+  // Runs once after the initial Supabase fetch so we operate on the authoritative data.
   useEffect(() => {
+    if (!supabaseReady) return
     setData(prev => {
       const missingCrypto = DEFAULTS.crypto.filter(
         dc => !prev.crypto.some(c => c.coinId === dc.coinId)
@@ -46,7 +48,6 @@ export default function App() {
       const goalsChanged = updatedGoals.some((g, i) => g !== prev.goals[i])
       const etfsChanged = updatedEtfs.some((e, i) => e !== prev.etfs[i])
 
-      // Add schedules/pools/logs if missing (existing user)
       const nowIso = new Date().toISOString()
       const extras = {}
       if (!prev.schedules) extras.schedules = DEFAULTS.schedules.map(s => ({ ...s, lastFiredAt: nowIso }))
@@ -58,10 +59,11 @@ export default function App() {
       if (missingCrypto.length === 0 && !etfsChanged && !goalsChanged && !hasExtras) return prev
       return { ...prev, ...extras, crypto: [...prev.crypto, ...missingCrypto], etfs: updatedEtfs, goals: updatedGoals }
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabaseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Schedule processor: runs on every mount, catches up missed transfers ───
+  // ── Schedule processor: catches up missed transfers after Supabase loads ──
   useEffect(() => {
+    if (!supabaseReady) return
     setData(prev => {
       const schedules = prev.schedules ?? []
       if (schedules.length === 0) return prev
@@ -72,14 +74,12 @@ export default function App() {
       const newLogs = []
       const updatedSchedules = schedules.map(s => ({ ...s }))
 
-      // Collect all due instances across all active schedules
       const allDue = []
       schedules.filter(s => s.active).forEach(s => {
         getDueInstances(s, now).forEach(t => allDue.push({ scheduleId: s.id, fireTime: t }))
       })
       if (allDue.length === 0) return prev
 
-      // Process in chronological order — income before transfers on the same timestamp
       allDue.sort((a, b) => {
         const dt = a.fireTime - b.fireTime
         if (dt !== 0) return dt
@@ -142,7 +142,7 @@ export default function App() {
         transferLog: [...newLogs, ...(prev.transferLog ?? [])],
       }
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabaseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const prices = usePrices(data.crypto, data.stocks, data.etfs)
   const updateData = (key, value) => setData(prev => ({ ...prev, [key]: value }))
@@ -152,7 +152,7 @@ export default function App() {
     <div className="layout">
       <Sidebar page={page} setPage={setPage} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Topbar page={page} prices={prices} />
+        <Topbar page={page} prices={prices} syncStatus={syncStatus} />
         <Ticker data={data} prices={prices} />
         <main className="main-content">
           {page === 'dashboard'  && <Dashboard  {...pageProps} />}
