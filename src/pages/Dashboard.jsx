@@ -1,0 +1,362 @@
+import { useState, useMemo, useEffect } from 'react'
+import { AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { fmt, fmtFull, fmtNum, fmtNative, toAUD, toMonthly, genId, getNextFireTime } from '../utils'
+import { Modal, EditValueModal } from '../components/Modal'
+import { useWeather } from '../hooks/useWeather'
+import { VaultRank } from '../components/VaultRank'
+
+const QUIRKY = [
+  'Welcome back, Benji',
+  'The market awaits, Benji',
+  'Compound interest is your friend, Benji',
+  'Net worth loading… Benji detected',
+  "Money doesn't sleep, Benji",
+  'Time in the market beats timing the market, Benji',
+  'Your future self says thanks, Benji',
+  'Diversification is the only free lunch, Benji',
+  'Another day, another dollar — compounded, Benji',
+  'Inflation fears? Not today, Benji',
+  'The best investment is the one you start, Benji',
+]
+
+function getGreeting() {
+  if (Math.random() < 0.28) return QUIRKY[Math.floor(Math.random() * QUIRKY.length)]
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning, Benji'
+  if (h < 17) return 'Good afternoon, Benji'
+  return 'Good evening, Benji'
+}
+
+const ACCOUNT_COLORS = ['#f0a500', '#5b9ef0', '#a87ef0', '#4caf7d', '#4caf7d', '#5b9ef0', '#f0a500']
+
+function genTrend(total) {
+  const pts = []
+  let v = total * 0.88
+  for (let i = 29; i >= 0; i--) {
+    v += (Math.random() - 0.38) * total * 0.012
+    v = Math.max(v, total * 0.7)
+    const d = new Date(); d.setDate(d.getDate() - i)
+    pts.push({ date: d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }), value: Math.round(i === 0 ? total : v) })
+  }
+  return pts
+}
+
+function StatCard({ label, value, sub, color }) {
+  return (
+    <div className="stat-card">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value" style={color ? { color } : {}}>{value}</div>
+      {sub && <div className="stat-sub">{sub}</div>}
+    </div>
+  )
+}
+
+export function Dashboard({ data, updateData, prices }) {
+  const [editAccount, setEditAccount] = useState(null)
+  const [greeting] = useState(getGreeting)
+  const [now, setNow] = useState(new Date())
+  const weather = useWeather()
+
+  useEffect(() => {
+    const iv = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(iv)
+  }, [])
+
+  const usdToAud = prices?.usdToAud ?? 1.55
+  const totalBalance = useMemo(
+    () => data.accounts.reduce((s, a) => s + toAUD(a.balance, a.currency, usdToAud), 0),
+    [data.accounts, usdToAud]
+  )
+  const totalDebt = useMemo(
+    () => (data.debts ?? []).reduce((s, d) => s + (d.remaining || 0), 0),
+    [data.debts]
+  )
+  const trueNetWorth = totalBalance - totalDebt
+  const totalIncome = useMemo(() => data.budget.income.reduce((s, i) => s + i.amount, 0), [data.budget.income])
+  const totalExpenses = useMemo(() => data.budget.expenses.reduce((s, e) => s + toMonthly(e.amount, e.frequency), 0), [data.budget.expenses])
+  const savings = totalIncome - totalExpenses
+  const savingsRate = totalIncome > 0 ? (savings / totalIncome * 100).toFixed(0) : 0
+  const trend = useMemo(() => genTrend(totalBalance), [totalBalance])
+
+  const pieData = data.accounts.map((a, i) => ({ name: a.name, value: toAUD(a.balance, a.currency, usdToAud), color: a.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }))
+
+  const cryptoValue = useMemo(() => data.crypto.reduce((s, c) => {
+    const p = prices?.crypto?.[c.coinId]?.aud ?? 0
+    return s + c.amount * p
+  }, 0), [data.crypto, prices])
+
+  const stockValue = useMemo(() => data.stocks.reduce((s, st) => {
+    const p = prices?.stocks?.[st.ticker]?.aud ?? 0
+    return s + st.shares * p
+  }, 0), [data.stocks, prices])
+
+  const etfValue = useMemo(() => data.etfs.reduce((s, e) => {
+    const p = prices?.etfs?.[e.ticker]?.aud ?? 0
+    return s + e.units * p
+  }, 0), [data.etfs, prices])
+
+  const livePortfolio = cryptoValue + stockValue + etfValue
+
+  return (
+    <div className="page">
+      {/* Header: greeting + clock + weather */}
+      <div className="card" style={{ background: 'linear-gradient(135deg, #191c22 0%, #14161a 100%)', borderColor: 'rgba(240,165,0,0.12)', padding: '20px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>{greeting}</div>
+            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 5 }}>Here's your financial overview</div>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 2 }}>
+              {now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 22, fontWeight: 700, color: 'var(--amber)', letterSpacing: '-0.5px' }}>
+              {now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </div>
+            {weather && (
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+                {weather.emoji} {weather.temp}°C · Brisbane
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Net worth + stats */}
+      <div className="grid-4">
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: 'rgba(240,165,0,0.2)' }}>
+          <div className="stat-label">Gross Net Worth</div>
+          <div className="stat-value" style={{ fontSize: 26, color: 'var(--amber)' }}>{fmt(totalBalance)}</div>
+          <div className="stat-sub" style={{ marginTop: 6 }}>All assets, debt excluded</div>
+        </div>
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: trueNetWorth < 0 ? 'rgba(224,91,91,0.25)' : 'rgba(76,175,125,0.2)' }}>
+          <div className="stat-label">True Net Worth</div>
+          <div className="stat-value" style={{ fontSize: 26, color: trueNetWorth < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(trueNetWorth)}</div>
+          <div className="stat-sub" style={{ marginTop: 6 }}>Assets minus {fmt(totalDebt)} debt</div>
+        </div>
+        <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% savings rate`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
+        <StatCard label="Monthly Income" value={fmt(totalIncome)} sub={`Expenses: ${fmt(totalExpenses)}`} />
+      </div>
+
+      {/* Charts row */}
+      <div className="grid-2">
+        <div className="card">
+          <div className="section-header">
+            <span className="section-title">Net Worth Trend</span>
+            <span className="text-sm text-muted">30 days</span>
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={trend}>
+              <defs>
+                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f0a500" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#f0a500" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval={6} />
+              <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
+              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(v) => [fmt(v), 'Balance']} labelStyle={{ color: 'var(--muted)' }} />
+              <Area type="monotone" dataKey="value" stroke="#f0a500" strokeWidth={2} fill="url(#grad)" dot={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="card">
+          <div className="section-header">
+            <span className="section-title">Account Allocation</span>
+            <span className="text-sm text-muted">{fmt(totalBalance)}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <ResponsiveContainer width={160} height={160}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={72} paddingAngle={2} dataKey="value">
+                  {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(v) => [fmt(v)]} labelStyle={{ color: 'var(--muted)' }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {pieData.map((e, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="color-dot" style={{ background: e.color }} />
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{e.name}</span>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{(e.value / totalBalance * 100).toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Accounts quick view */}
+      <div className="card">
+        <div className="section-header">
+          <span className="section-title">Accounts</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+          {data.accounts.map((acc, i) => (
+            <div key={acc.id} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '14px 16px', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <div className="color-dot" style={{ background: acc.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }} />
+                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{acc.type}</span>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{acc.name}</div>
+              <span
+                className="editable-val"
+                style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700 }}
+                onClick={() => setEditAccount(acc)}
+              >{fmtNative(acc.balance, acc.currency)}</span>
+              {acc.currency === 'USD' && (
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>≈ {fmt(toAUD(acc.balance, 'USD', usdToAud))}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Budget & Goals row */}
+      <div className="grid-2">
+        <div className="card">
+          <div className="section-header">
+            <span className="section-title">Budget Summary</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ color: 'var(--muted)', fontSize: 13 }}>Total Income</span>
+              <span style={{ fontWeight: 600, color: 'var(--green)' }}>{fmt(totalIncome)}</span>
+            </div>
+            {data.budget.expenses.map(exp => (
+              <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 13 }}>{exp.name}</span>
+                <span style={{ fontSize: 13 }}>{fmt(exp.amount)}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <span style={{ fontWeight: 600 }}>Net Savings</span>
+              <span style={{ fontWeight: 700, color: savings >= 0 ? 'var(--green)' : 'var(--red)' }}>{fmt(savings)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-header">
+            <span className="section-title">Goals Progress</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {data.goals.map(g => {
+              const pct = Math.min(100, Math.round(g.current / g.target * 100))
+              const remaining = g.target - g.current
+              const mthsLeft = g.monthly > 0 ? Math.ceil(remaining / g.monthly) : null
+              return (
+                <div key={g.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.icon} {g.name}</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{pct}%</span>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${pct}%`, background: g.color }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{fmt(g.current)} of {fmt(g.target)}</span>
+                    {mthsLeft !== null && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{mthsLeft} mo left</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Schedules + Pools widgets */}
+      {((data.schedules ?? []).length > 0 || Object.values(data.pools ?? {}).some(p => p.available > 0)) && (
+        <div className="grid-2">
+          {/* Upcoming Transfers */}
+          <div className="card">
+            <div className="section-header">
+              <span className="section-title">Upcoming Transfers</span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>next 3</span>
+            </div>
+            {(() => {
+              const upcoming = (data.schedules ?? [])
+                .filter(s => s.active)
+                .map(s => ({ ...s, nextFire: getNextFireTime(s, new Date()) }))
+                .filter(s => s.nextFire != null)
+                .sort((a, b) => a.nextFire - b.nextFire)
+                .slice(0, 3)
+              if (upcoming.length === 0) return <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '12px 0' }}>No upcoming transfers</div>
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {upcoming.map(s => {
+                    const typeColor = s.type === 'income' ? 'var(--green)' : 'var(--blue)'
+                    const d = s.nextFire
+                    const now = new Date()
+                    const diff = d - now
+                    const days = Math.floor(diff / (24 * 3600 * 1000))
+                    const time = d.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })
+                    const dayLabel = days === 0 ? `Today ${time}` : days === 1 ? `Tomorrow ${time}` : d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${time}`
+                    return (
+                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dayLabel}</div>
+                        </div>
+                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: typeColor }}>{s.type === 'income' ? '+' : ''}{fmt(s.amount)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Investment Pools */}
+          <div className="card">
+            <div className="section-header">
+              <span className="section-title">Investment Pools</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {Object.entries(data.pools ?? {}).map(([id, pool]) => {
+                const cfg = { crypto: { label: 'Crypto Pool', color: '#a87ef0', icon: '🔮' }, stocks: { label: 'Stocks Pool', color: '#4caf7d', icon: '📈' }, etfs: { label: 'ETF Pool', color: '#5b9ef0', icon: '🏦' } }[id]
+                if (!cfg) return null
+                return (
+                  <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>{cfg.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{cfg.label}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fmt(pool.weeklyContribution)}/week · {fmt(pool.deployedTotal)} deployed</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 16, color: cfg.color }}>{fmt(pool.available)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted)' }}>available</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vault Rank */}
+      <div>
+        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 17, fontWeight: 700, marginBottom: 14 }}>Vault Rank</div>
+        <VaultRank data={data} prices={prices} netWorth={trueNetWorth} />
+      </div>
+
+      {editAccount && (
+        <EditValueModal
+          label={`${editAccount.name} Balance`}
+          value={editAccount.balance}
+          onClose={() => setEditAccount(null)}
+          onSave={(v) => {
+            updateData('accounts', data.accounts.map(a => a.id === editAccount.id ? { ...a, balance: parseFloat(v) } : a))
+          }}
+        />
+      )}
+    </div>
+  )
+}
