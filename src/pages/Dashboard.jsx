@@ -4,6 +4,7 @@ import { fmt, fmtFull, fmtNum, fmtNative, toAUD, toMonthly, genId, getNextFireTi
 import { Modal, EditValueModal } from '../components/Modal'
 import { useWeather } from '../hooks/useWeather'
 import { VaultRank } from '../components/VaultRank'
+import { useSnapshots, takeSnapshot } from '../hooks/useSnapshots'
 
 const QUIRKY = [
   'Welcome back, Benji',
@@ -29,17 +30,6 @@ function getGreeting() {
 
 const ACCOUNT_COLORS = ['#f0a500', '#5b9ef0', '#a87ef0', '#4caf7d', '#4caf7d', '#5b9ef0', '#f0a500']
 
-function genTrend(total) {
-  const pts = []
-  let v = total * 0.88
-  for (let i = 29; i >= 0; i--) {
-    v += (Math.random() - 0.38) * total * 0.012
-    v = Math.max(v, total * 0.7)
-    const d = new Date(); d.setDate(d.getDate() - i)
-    pts.push({ date: d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }), value: Math.round(i === 0 ? total : v) })
-  }
-  return pts
-}
 
 function StatCard({ label, value, sub, color }) {
   return (
@@ -56,6 +46,8 @@ export function Dashboard({ data, updateData, prices }) {
   const [greeting] = useState(getGreeting)
   const [now, setNow] = useState(new Date())
   const weather = useWeather()
+  const snapshots = useSnapshots()
+  const [range, setRange] = useState('1M')
 
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 1000)
@@ -76,7 +68,6 @@ export function Dashboard({ data, updateData, prices }) {
   const totalExpenses = useMemo(() => data.budget.expenses.reduce((s, e) => s + toMonthly(e.amount, e.frequency), 0), [data.budget.expenses])
   const savings = totalIncome - totalExpenses
   const savingsRate = totalIncome > 0 ? (savings / totalIncome * 100).toFixed(0) : 0
-  const trend = useMemo(() => genTrend(totalBalance), [totalBalance])
 
   const pieData = data.accounts.map((a, i) => ({ name: a.name, value: resolvedAccountBalance(a, data, prices), color: a.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }))
 
@@ -96,6 +87,29 @@ export function Dashboard({ data, updateData, prices }) {
   }, 0), [data.etfs, prices])
 
   const livePortfolio = cryptoValue + stockValue + etfValue
+
+  useEffect(() => {
+    if (!prices?.live) return
+    takeSnapshot(totalBalance, cryptoValue, stockValue, etfValue)
+  }, [prices?.live]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const trend = useMemo(() => {
+    if (snapshots.length === 0) return []
+    const now = new Date()
+    const cutoffs = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+    const days = cutoffs[range] ?? 30
+    const cutoff = new Date(now)
+    cutoff.setDate(cutoff.getDate() - days)
+    return snapshots
+      .filter(s => new Date(s.date) >= cutoff)
+      .map(s => ({
+        date: new Date(s.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+        value: s.net_worth,
+        crypto: s.crypto_value,
+        stocks: s.stocks_value,
+        etfs: s.etf_value,
+      }))
+  }, [snapshots, range])
 
   return (
     <div className="page">
@@ -143,22 +157,36 @@ export function Dashboard({ data, updateData, prices }) {
         <div className="card">
           <div className="section-header">
             <span className="section-title">Net Worth Trend</span>
-            <span className="text-sm text-muted">30 days</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['1D','1W','1M','3M','6M','1Y'].map(r => (
+                <button key={r} onClick={() => setRange(r)}
+                  className={`tab ${range === r ? 'active' : ''}`}
+                  style={{ marginBottom: 0, padding: '3px 8px', fontSize: 11 }}>
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={trend}>
-              <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f0a500" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#f0a500" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval={6} />
-              <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
-              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(v) => [fmt(v), 'Balance']} labelStyle={{ color: 'var(--muted)' }} />
-              <Area type="monotone" dataKey="value" stroke="#f0a500" strokeWidth={2} fill="url(#grad)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {trend.length < 2 ? (
+            <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>
+              Not enough data yet — come back tomorrow as history builds up 📈
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={trend}>
+                <defs>
+                  <linearGradient id="gradNW" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f0a500" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f0a500" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={v => [fmt(v), 'Net Worth']} labelStyle={{ color: 'var(--muted)' }} />
+                <Area type="monotone" dataKey="value" stroke="#f0a500" strokeWidth={2} fill="url(#gradNW)" dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="card">
@@ -188,6 +216,51 @@ export function Dashboard({ data, updateData, prices }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Portfolio breakdown charts */}
+      <div className="card">
+        <div className="section-header">
+          <span className="section-title">Portfolio Breakdown</span>
+          <span className="text-sm text-muted">{range}</span>
+        </div>
+        {trend.length < 2 ? (
+          <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>
+            Not enough data yet — come back tomorrow as history builds up 📈
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+            {[
+              { key: 'crypto', label: 'Crypto',  color: '#a87ef0', gradId: 'gradCrypto' },
+              { key: 'stocks', label: 'Stocks',  color: '#4caf7d', gradId: 'gradStocks' },
+              { key: 'etfs',   label: 'ETFs',    color: '#5b9ef0', gradId: 'gradEtfs'   },
+            ].map(({ key, label, color, gradId }) => {
+              const current = trend[trend.length - 1]?.[key] ?? 0
+              return (
+                <div key={key}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color }}>{fmt(current)}</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={140}>
+                    <AreaChart data={trend}>
+                      <defs>
+                        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={color} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                      <YAxis hide />
+                      <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={v => [fmt(v), label]} labelStyle={{ color: 'var(--muted)' }} />
+                      <Area type="monotone" dataKey={key} stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Accounts quick view */}
