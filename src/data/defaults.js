@@ -134,4 +134,5 @@ export const DEFAULTS = {
   },
   transferLog: [],
   poolDeployments: [],
+  transactions: [],
 }

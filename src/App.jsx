@@ -54,6 +54,7 @@ export default function App() {
       if (!prev.pools) extras.pools = DEFAULTS.pools
       if (!prev.transferLog) extras.transferLog = []
       if (!prev.poolDeployments) extras.poolDeployments = []
+      if (!prev.transactions) extras.transactions = []
       const hasExtras = Object.keys(extras).length > 0
 
       if (missingCrypto.length === 0 && !etfsChanged && !goalsChanged && !hasExtras) return prev
