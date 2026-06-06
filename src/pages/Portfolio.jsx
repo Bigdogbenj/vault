@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
-import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, Cell, LineChart, Line, ReferenceLine, ReferenceDot, Legend, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { fmt, fmtFull, fmtNative, fmtNum, pct, genId } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
+import { useSnapshots } from '../hooks/useSnapshots'
 
 function Change({ val }) {
   if (val === null || val === undefined) return <span className="text-muted text-sm">—</span>
@@ -389,7 +390,12 @@ export function Portfolio({ data, updateData, prices }) {
   const [tab, setTab] = useState('stocks')
   const [modal, setModal] = useState(null)
   const [editVal, setEditVal] = useState(null)
+  const [histRange, setHistRange] = useState('1M')
+  const [projYears, setProjYears] = useState(10)
+  const [projRate, setProjRate] = useState(8)
+  const [projMonthly, setProjMonthly] = useState({ crypto: 200, etfs: 500, stocks: 300 })
 
+  const snapshots = useSnapshots()
   const usdToAud = prices?.usdToAud ?? 1.55
 
   const stockTotal = useMemo(() => data.stocks.reduce((s, st) => s + st.shares * (prices?.stocks?.[st.ticker]?.aud ?? 0), 0), [data.stocks, prices])
@@ -401,6 +407,88 @@ export function Portfolio({ data, updateData, prices }) {
     { name: 'ETFs', value: Math.round(etfTotal) },
     { name: 'Crypto', value: Math.round(cryptoTotal) },
   ]
+
+  // Portfolio History: snapshots filtered by selected range
+  const histTrend = useMemo(() => {
+    if (!snapshots.length) return []
+    const cutoffs = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - (cutoffs[histRange] ?? 30))
+    return snapshots
+      .filter(s => new Date(s.date) >= cutoff)
+      .map(s => ({
+        label: new Date(s.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+        crypto: s.crypto_value,
+        stocks: s.stocks_value,
+        etfs: s.etf_value,
+      }))
+  }, [snapshots, histRange])
+
+  // Growth Projection: history + forward compound projection
+  const { projChartData, projMilestones, projFinalValues } = useMemo(() => {
+    const monthlyRate = Math.pow(1 + projRate / 100, 1 / 12) - 1
+    const now = new Date()
+
+    // Last 12 months of history for the combined chart
+    const histCutoff = new Date(now)
+    histCutoff.setMonth(histCutoff.getMonth() - 12)
+    const hist = snapshots
+      .filter(s => new Date(s.date) >= histCutoff)
+      .map(s => ({
+        label: new Date(s.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+        crypto: s.crypto_value, stocks: s.stocks_value, etfs: s.etf_value,
+      }))
+
+    // Today bridge — carries both historical key names and projection key names
+    const todayPt = {
+      label: 'Today',
+      crypto: cryptoTotal, stocks: stockTotal, etfs: etfTotal,
+      projCrypto: cryptoTotal, projStocks: stockTotal, projEtfs: etfTotal,
+    }
+
+    // Build quarterly projection points + find milestones
+    const TARGETS = [50000, 100000, 250000]
+    const trackers = [
+      { projKey: 'projCrypto', color: '#f0a500', current: cryptoTotal, found: null },
+      { projKey: 'projStocks', color: '#5b9ef0', current: stockTotal,  found: null },
+      { projKey: 'projEtfs',   color: '#4caf7d', current: etfTotal,    found: null },
+    ]
+    let c = cryptoTotal, s = stockTotal, e = etfTotal
+    const proj = []
+
+    for (let m = 1; m <= projYears * 12; m++) {
+      c = c * (1 + monthlyRate) + projMonthly.crypto
+      s = s * (1 + monthlyRate) + projMonthly.stocks
+      e = e * (1 + monthlyRate) + projMonthly.etfs
+
+      if (m % 3 === 0) {
+        const d = new Date(now)
+        d.setMonth(d.getMonth() + m)
+        const label = d.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+        const vals = { projCrypto: Math.round(c), projStocks: Math.round(s), projEtfs: Math.round(e) }
+        proj.push({ label, ...vals })
+
+        // Milestone detection per asset (earliest unmet only)
+        for (const t of trackers) {
+          if (t.found) continue
+          for (const target of TARGETS) {
+            if (t.current >= target) continue   // already exceeded
+            if (vals[t.projKey] >= target) {
+              const labelStr = `$${target >= 1_000_000 ? (target/1_000_000)+'M' : (target/1000)+'k'}`
+              t.found = { x: label, y: target, color: t.color, projKey: t.projKey, labelStr }
+              break
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      projChartData: [...hist, todayPt, ...proj],
+      projMilestones: trackers.map(t => t.found).filter(Boolean),
+      projFinalValues: { crypto: Math.round(c), stocks: Math.round(s), etfs: Math.round(e) },
+    }
+  }, [snapshots, cryptoTotal, stockTotal, etfTotal, projRate, projYears, projMonthly]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveTransaction = (tx) => {
     if (tx.assetType === 'crypto') {
@@ -488,6 +576,112 @@ export function Portfolio({ data, updateData, prices }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Portfolio History */}
+      <div className="card">
+        <div className="section-header">
+          <span className="section-title">Portfolio History</span>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['1W','1M','3M','6M','1Y'].map(r => (
+              <button key={r} onClick={() => setHistRange(r)}
+                className={`tab ${histRange === r ? 'active' : ''}`}
+                style={{ marginBottom: 0, padding: '3px 8px', fontSize: 11 }}>
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
+          {[{ label: 'Crypto', color: '#f0a500', value: cryptoTotal }, { label: 'Stocks', color: '#5b9ef0', value: stockTotal }, { label: 'ETFs', color: '#4caf7d', value: etfTotal }].map(({ label, color, value }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 20, height: 3, borderRadius: 2, background: color }} />
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color }}>{fmt(value)}</span>
+            </div>
+          ))}
+        </div>
+        {histTrend.length < 2 ? (
+          <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>
+            Not enough data yet — history builds as you use the app 📈
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={histTrend}>
+              <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
+              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={v => [fmt(v)]} labelStyle={{ color: 'var(--muted)' }} />
+              <Line type="monotone" dataKey="crypto" stroke="#f0a500" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="stocks" stroke="#5b9ef0" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="etfs"   stroke="#4caf7d" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Growth Projection */}
+      <div className="card">
+        <div className="section-header">
+          <span className="section-title">Growth Projection</span>
+        </div>
+        <div className="grid-3" style={{ marginBottom: 16 }}>
+          {[['crypto','Monthly into Crypto (AUD)'],['etfs','Monthly into ETFs (AUD)'],['stocks','Monthly into Stocks (AUD)']].map(([key, lbl]) => (
+            <div key={key} className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">{lbl}</label>
+              <input className="form-input" type="number" min="0" value={projMonthly[key]}
+                onChange={e => setProjMonthly(p => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 20, alignItems: 'flex-end' }}>
+          <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
+            <label className="form-label">Time horizon: <strong>{projYears} year{projYears !== 1 ? 's' : ''}</strong></label>
+            <input type="range" min="1" max="20" value={projYears} onChange={e => setProjYears(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: 'var(--amber)', cursor: 'pointer', marginTop: 6 }} />
+          </div>
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Annual growth rate (%)</label>
+            <input className="form-input" type="number" min="0" max="50" step="0.5" value={projRate}
+              onChange={e => setProjRate(parseFloat(e.target.value) || 0)} />
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={projChartData}>
+            <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
+            <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(v, name) => v != null ? [fmt(v), name] : null} labelStyle={{ color: 'var(--muted)' }} />
+            <Legend iconType="plainline" iconSize={16} wrapperStyle={{ fontSize: 11, color: 'var(--muted)', paddingTop: 8 }} />
+            {/* Solid historical lines */}
+            <Line type="monotone" dataKey="crypto" name="Crypto (actual)" stroke="#f0a500" strokeWidth={2} dot={false} connectNulls={false} legendType="none" />
+            <Line type="monotone" dataKey="stocks" name="Stocks (actual)" stroke="#5b9ef0" strokeWidth={2} dot={false} connectNulls={false} legendType="none" />
+            <Line type="monotone" dataKey="etfs"   name="ETFs (actual)"   stroke="#4caf7d" strokeWidth={2} dot={false} connectNulls={false} legendType="none" />
+            {/* Dashed projection lines */}
+            <Line type="monotone" dataKey="projCrypto" name="Crypto (projected)" stroke="#f0a500" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={false} />
+            <Line type="monotone" dataKey="projStocks" name="Stocks (projected)" stroke="#5b9ef0" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={false} />
+            <Line type="monotone" dataKey="projEtfs"   name="ETFs (projected)"   stroke="#4caf7d" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={false} />
+            {/* Today marker */}
+            <ReferenceLine x="Today" stroke="var(--muted)" strokeDasharray="3 3" label={{ value: 'Today', position: 'top', fill: 'var(--muted)', fontSize: 10 }} />
+            {/* Milestone dots */}
+            {projMilestones.map((m, i) => (
+              <ReferenceDot key={i} x={m.x} y={m.y} r={5} fill={m.color} stroke="var(--surface)" strokeWidth={2}
+                label={{ value: m.labelStr, position: 'top', fill: m.color, fontSize: 10, fontWeight: 700 }} />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+        {/* Final value cards */}
+        <div className="grid-3" style={{ marginTop: 16 }}>
+          {[
+            { label: 'Crypto', color: '#f0a500', key: 'crypto', today: cryptoTotal },
+            { label: 'ETFs',   color: '#4caf7d', key: 'etfs',   today: etfTotal   },
+            { label: 'Stocks', color: '#5b9ef0', key: 'stocks', today: stockTotal  },
+          ].map(({ label, color, key, today }) => (
+            <div key={key} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{label} in {projYears}y</div>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color }}>{fmt(projFinalValues[key])}</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{fmt(today)} today</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="card">

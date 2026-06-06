@@ -26,8 +26,17 @@ export default function App() {
   useEffect(() => {
     if (!supabaseReady) return
     setData(prev => {
+      const deletedCoinIds = prev._deletedCoinIds ?? []
+      const deletedStockTickers = prev._deletedStockTickers ?? []
+      const deletedEtfTickers = prev._deletedEtfTickers ?? []
       const missingCrypto = DEFAULTS.crypto.filter(
-        dc => !prev.crypto.some(c => c.coinId === dc.coinId)
+        dc => !prev.crypto.some(c => c.coinId === dc.coinId) && !deletedCoinIds.includes(dc.coinId)
+      )
+      const missingStocks = DEFAULTS.stocks.filter(
+        ds => !prev.stocks.some(s => s.ticker === ds.ticker) && !deletedStockTickers.includes(ds.ticker)
+      )
+      const missingEtfs = DEFAULTS.etfs.filter(
+        de => !prev.etfs.some(e => e.ticker === de.ticker) && !deletedEtfTickers.includes(de.ticker)
       )
       const updatedEtfs = prev.etfs.map(e => {
         const def = DEFAULTS.etfs.find(d => d.ticker === e.ticker)
@@ -57,8 +66,14 @@ export default function App() {
       if (!prev.transactions) extras.transactions = []
       const hasExtras = Object.keys(extras).length > 0
 
-      if (missingCrypto.length === 0 && !etfsChanged && !goalsChanged && !hasExtras) return prev
-      return { ...prev, ...extras, crypto: [...prev.crypto, ...missingCrypto], etfs: updatedEtfs, goals: updatedGoals }
+      if (missingCrypto.length === 0 && missingStocks.length === 0 && missingEtfs.length === 0 && !etfsChanged && !goalsChanged && !hasExtras) return prev
+      return {
+        ...prev, ...extras,
+        crypto: [...prev.crypto, ...missingCrypto],
+        stocks: [...prev.stocks, ...missingStocks],
+        etfs: [...updatedEtfs, ...missingEtfs.filter(de => !updatedEtfs.some(e => e.ticker === de.ticker))],
+        goals: updatedGoals,
+      }
     })
   }, [supabaseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -146,7 +161,24 @@ export default function App() {
   }, [supabaseReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const prices = usePrices(data.crypto, data.stocks, data.etfs)
-  const updateData = (key, value) => setData(prev => ({ ...prev, [key]: value }))
+  const updateData = (key, value) => setData(prev => {
+    if (key === 'crypto') {
+      const removed = (prev.crypto ?? []).filter(c => !value.some(v => v.coinId === c.coinId)).map(c => c.coinId)
+      const _deletedCoinIds = [...new Set([...(prev._deletedCoinIds ?? []), ...removed])]
+      return { ...prev, crypto: value, _deletedCoinIds }
+    }
+    if (key === 'stocks') {
+      const removed = (prev.stocks ?? []).filter(s => !value.some(v => v.ticker === s.ticker)).map(s => s.ticker)
+      const _deletedStockTickers = [...new Set([...(prev._deletedStockTickers ?? []), ...removed])]
+      return { ...prev, stocks: value, _deletedStockTickers }
+    }
+    if (key === 'etfs') {
+      const removed = (prev.etfs ?? []).filter(e => !value.some(v => v.ticker === e.ticker)).map(e => e.ticker)
+      const _deletedEtfTickers = [...new Set([...(prev._deletedEtfTickers ?? []), ...removed])]
+      return { ...prev, etfs: value, _deletedEtfTickers }
+    }
+    return { ...prev, [key]: value }
+  })
   const pageProps = { data, updateData, prices }
 
   return (

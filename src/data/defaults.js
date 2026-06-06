@@ -22,7 +22,6 @@ export const DEFAULTS = {
     { id: '2', symbol: 'ETH', name: 'Ethereum', coinId: 'ethereum', amount: 0.25, avgCost: 4500 },
     { id: '3', symbol: 'SOL', name: 'Solana', coinId: 'solana', amount: 2.5, avgCost: 220 },
     { id: '4', symbol: 'LINK', name: 'Chainlink', coinId: 'chainlink', amount: 8, avgCost: 22 },
-    { id: '5', symbol: 'DOT', name: 'Polkadot', coinId: 'polkadot', amount: 15, avgCost: 10 },
     { id: '6', symbol: 'ADA', name: 'Cardano', coinId: 'cardano', amount: 200, avgCost: 0.7 },
     { id: '7', symbol: 'INJ', name: 'Injective', coinId: 'injective-protocol', amount: 0, avgCost: 0 },
     { id: '8', symbol: 'XRP', name: 'XRP', coinId: 'ripple', amount: 0, avgCost: 0 },
