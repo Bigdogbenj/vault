@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { fmt, fmtNative, toAUD, genId } from '../utils'
+import { fmt, fmtNative, toAUD, genId, resolvedAccountBalance, LIVE_ACCOUNT_NAMES } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
 
 const ACCOUNT_TYPES = ['Savings', 'Checking', 'Super', 'Investment', 'Crypto', 'Loan', 'Other']
@@ -70,16 +70,16 @@ export function Accounts({ data, updateData, prices }) {
 
   const usdToAud = prices?.usdToAud ?? 1.55
 
-  const audBalance = (acc) => toAUD(acc.balance, acc.currency, usdToAud)
+  const audBalance = (acc) => resolvedAccountBalance(acc, data, prices)
 
   const total = useMemo(
-    () => data.accounts.reduce((s, a) => s + audBalance(a), 0),
-    [data.accounts, usdToAud]
+    () => data.accounts.reduce((s, a) => s + resolvedAccountBalance(a, data, prices), 0),
+    [data.accounts, data.crypto, data.stocks, data.etfs, prices] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const largest = useMemo(
-    () => data.accounts.reduce((max, a) => audBalance(a) > audBalance(max) ? a : max, data.accounts[0] || {}),
-    [data.accounts, usdToAud]
+    () => data.accounts.reduce((max, a) => resolvedAccountBalance(a, data, prices) > resolvedAccountBalance(max, data, prices) ? a : max, data.accounts[0] || {}),
+    [data.accounts, data.crypto, data.stocks, data.etfs, prices] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const saveAccount = (form) => {
@@ -144,20 +144,27 @@ export function Accounts({ data, updateData, prices }) {
                     </div>
                   </td>
                   <td>
-                    <div>
-                      <span
-                        className="editable-val"
-                        style={{ fontWeight: 600, fontSize: 15 }}
-                        onClick={() => setEditBal(acc)}
-                      >
-                        {isUsd ? fmtNative(acc.balance, 'USD') : fmt(acc.balance)}
-                      </span>
-                      {isUsd && (
-                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                          ≈ {fmt(aud)}
-                        </div>
-                      )}
-                    </div>
+                    {LIVE_ACCOUNT_NAMES.includes(acc.name) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 600, fontSize: 15 }}>{fmt(aud)}</span>
+                        <span className="badge badge-green" style={{ fontSize: 10, padding: '2px 6px' }}>live</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span
+                          className="editable-val"
+                          style={{ fontWeight: 600, fontSize: 15 }}
+                          onClick={() => setEditBal(acc)}
+                        >
+                          {isUsd ? fmtNative(acc.balance, 'USD') : fmt(acc.balance)}
+                        </span>
+                        {isUsd && (
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                            ≈ {fmt(aud)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -169,7 +176,9 @@ export function Accounts({ data, updateData, prices }) {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="icon-btn" onClick={() => setModal({ item: acc })} title="Edit">✎</button>
+                      {!LIVE_ACCOUNT_NAMES.includes(acc.name) && (
+                        <button className="icon-btn" onClick={() => setModal({ item: acc })} title="Edit">✎</button>
+                      )}
                       <button className="icon-btn danger" onClick={() => updateData('accounts', data.accounts.filter(a => a.id !== acc.id))} title="Delete">✕</button>
                     </div>
                   </td>

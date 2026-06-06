@@ -105,6 +105,26 @@ export function getDueInstances(schedule, now) {
 }
 export const toMonthly = (amount, frequency) => (amount ?? 0) * (FREQ_MULTIPLIERS[frequency ?? 'monthly'] ?? 1)
 
+export const LIVE_ACCOUNT_NAMES = ['Crypto', 'Stocks', 'Vanguard ETF']
+
+export function resolvedAccountBalance(account, data, prices) {
+  const usdToAud = prices?.usdToAud ?? 1.55
+  const fallback = toAUD(account.balance, account.currency, usdToAud)
+  // Only override with live portfolio value once prices have actually loaded.
+  // Without this guard, accounts show $0 on first render before the fetch completes.
+  if (!prices?.live) return fallback
+  switch (account.name) {
+    case 'Crypto':
+      return (data.crypto ?? []).reduce((s, c) => s + c.amount * (prices.crypto?.[c.coinId]?.aud ?? 0), 0)
+    case 'Stocks':
+      return (data.stocks ?? []).reduce((s, st) => s + st.shares * (prices.stocks?.[st.ticker]?.aud ?? 0), 0)
+    case 'Vanguard ETF':
+      return (data.etfs ?? []).reduce((s, e) => s + e.units * (prices.etfs?.[e.ticker]?.aud ?? 0), 0)
+    default:
+      return fallback
+  }
+}
+
 export const CATEGORY_COLORS = {
   Housing: '#5b9ef0',
   Food: '#4caf7d',

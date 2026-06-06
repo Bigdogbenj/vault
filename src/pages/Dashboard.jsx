@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { fmt, fmtFull, fmtNum, fmtNative, toAUD, toMonthly, genId, getNextFireTime } from '../utils'
+import { fmt, fmtFull, fmtNum, fmtNative, toAUD, toMonthly, genId, getNextFireTime, resolvedAccountBalance, LIVE_ACCOUNT_NAMES } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
 import { useWeather } from '../hooks/useWeather'
 import { VaultRank } from '../components/VaultRank'
@@ -64,8 +64,8 @@ export function Dashboard({ data, updateData, prices }) {
 
   const usdToAud = prices?.usdToAud ?? 1.55
   const totalBalance = useMemo(
-    () => data.accounts.reduce((s, a) => s + toAUD(a.balance, a.currency, usdToAud), 0),
-    [data.accounts, usdToAud]
+    () => data.accounts.reduce((s, a) => s + resolvedAccountBalance(a, data, prices), 0),
+    [data.accounts, data.crypto, data.stocks, data.etfs, prices] // eslint-disable-line react-hooks/exhaustive-deps
   )
   const totalDebt = useMemo(
     () => (data.debts ?? []).reduce((s, d) => s + (d.remaining || 0), 0),
@@ -78,7 +78,7 @@ export function Dashboard({ data, updateData, prices }) {
   const savingsRate = totalIncome > 0 ? (savings / totalIncome * 100).toFixed(0) : 0
   const trend = useMemo(() => genTrend(totalBalance), [totalBalance])
 
-  const pieData = data.accounts.map((a, i) => ({ name: a.name, value: toAUD(a.balance, a.currency, usdToAud), color: a.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }))
+  const pieData = data.accounts.map((a, i) => ({ name: a.name, value: resolvedAccountBalance(a, data, prices), color: a.color || ACCOUNT_COLORS[i % ACCOUNT_COLORS.length] }))
 
   const cryptoValue = useMemo(() => data.crypto.reduce((s, c) => {
     const p = prices?.crypto?.[c.coinId]?.aud ?? 0
@@ -203,13 +203,21 @@ export function Dashboard({ data, updateData, prices }) {
                 <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>{acc.type}</span>
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{acc.name}</div>
-              <span
-                className="editable-val"
-                style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700 }}
-                onClick={() => setEditAccount(acc)}
-              >{fmtNative(acc.balance, acc.currency)}</span>
-              {acc.currency === 'USD' && (
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>≈ {fmt(toAUD(acc.balance, 'USD', usdToAud))}</div>
+              {LIVE_ACCOUNT_NAMES.includes(acc.name) ? (
+                <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700 }}>
+                  {fmt(resolvedAccountBalance(acc, data, prices))}
+                </span>
+              ) : (
+                <>
+                  <span
+                    className="editable-val"
+                    style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700 }}
+                    onClick={() => setEditAccount(acc)}
+                  >{fmtNative(acc.balance, acc.currency)}</span>
+                  {acc.currency === 'USD' && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>≈ {fmt(toAUD(acc.balance, 'USD', usdToAud))}</div>
+                  )}
+                </>
               )}
             </div>
           ))}
