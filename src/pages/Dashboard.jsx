@@ -170,7 +170,7 @@ export function Dashboard({ data, updateData, prices }) {
           <div className="stat-value" style={{ fontSize: 26, color: trueNetWorth < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(trueNetWorth)}</div>
           <div className="stat-sub" style={{ marginTop: 6 }}>Assets minus {fmt(totalDebt)} debt</div>
         </div>
-        <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% · ${fmt(savings)}/mo`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
+        <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% savings rate`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
       </div>
 
       {/* Charts row */}
@@ -252,9 +252,9 @@ export function Dashboard({ data, updateData, prices }) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
             {[
-              { key: 'crypto', label: 'Crypto',  color: '#a87ef0', gradId: 'gradCrypto' },
-              { key: 'stocks', label: 'Stocks',  color: '#4caf7d', gradId: 'gradStocks' },
-              { key: 'etfs',   label: 'ETFs',    color: '#5b9ef0', gradId: 'gradEtfs'   },
+              { key: 'crypto', label: 'Crypto',  color: '#f0a500', gradId: 'gradCrypto' },
+              { key: 'stocks', label: 'Stocks',  color: '#5b9ef0', gradId: 'gradStocks' },
+              { key: 'etfs',   label: 'ETFs',    color: '#4caf7d', gradId: 'gradEtfs'   },
             ].map(({ key, label, color, gradId }) => {
               const current = trend[trend.length - 1]?.[key] ?? 0
               return (
@@ -347,7 +347,9 @@ export function Dashboard({ data, updateData, prices }) {
             <span className="section-title">Goals Progress</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {data.goals.map(g => {
+            {data.goals.filter(g => !g.completed).length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '12px 0' }}>No active goals — add one in Goals</div>
+            ) : data.goals.filter(g => !g.completed).map(g => {
               const pct = Math.min(100, Math.round(g.current / g.target * 100))
               const remaining = g.target - g.current
               const mthsLeft = g.monthly > 0 ? Math.ceil(remaining / g.monthly) : null
