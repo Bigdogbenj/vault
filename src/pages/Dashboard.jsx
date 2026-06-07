@@ -143,10 +143,15 @@ export function Dashboard({ data, updateData, prices }) {
 
       {/* Net worth + stats */}
       <div className="grid-4">
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: liquidNetWorth < 0 ? 'rgba(224,91,91,0.25)' : 'rgba(76,175,125,0.2)' }}>
+          <div className="stat-label">Liquid Net Worth</div>
+          <div className="stat-value" style={{ fontSize: 26, color: liquidNetWorth < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(liquidNetWorth)}</div>
+          <div className="stat-sub" style={{ marginTop: 6 }}>excl. Super ({fmt(superBalance)})</div>
+        </div>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: 'rgba(240,165,0,0.2)' }}>
           <div className="stat-label">Gross Net Worth</div>
-          <div className="stat-value" style={{ fontSize: 26, color: 'var(--amber)' }}>{fmt(liquidNetWorth)}</div>
-          <div className="stat-sub" style={{ marginTop: 6 }}>excl. Super &amp; debt · {fmt(superBalance)} in Super</div>
+          <div className="stat-value" style={{ fontSize: 26, color: 'var(--amber)' }}>{fmt(totalBalance)}</div>
+          <div className="stat-sub" style={{ marginTop: 6 }}>All assets incl. Super, debt excluded</div>
         </div>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: trueNetWorth < 0 ? 'rgba(224,91,91,0.25)' : 'rgba(76,175,125,0.2)' }}>
           <div className="stat-label">True Net Worth</div>
@@ -154,7 +159,6 @@ export function Dashboard({ data, updateData, prices }) {
           <div className="stat-sub" style={{ marginTop: 6 }}>Assets minus {fmt(totalDebt)} debt</div>
         </div>
         <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% savings rate`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
-        <StatCard label="Monthly Income" value={fmt(totalIncome)} sub={`Expenses: ${fmt(totalExpenses)}`} />
       </div>
 
       {/* Charts row */}
