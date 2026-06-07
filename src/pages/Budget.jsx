@@ -188,6 +188,117 @@ export function Budget({ data, updateData }) {
         </div>
       </div>
 
+      {/* Disposable Income Allocation Planner */}
+      <div className="card">
+        <div className="section-header">
+          <div>
+            <div className="section-title">Disposable Income Planner</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{fmt(monthlyDisposable)}/month to allocate</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setAllocModal(true)}>+ Add Allocation</button>
+        </div>
+
+        {/* Allocation status bar */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Monthly Disposable Income: <span style={{ color: 'var(--text)', fontWeight: 600 }}>{fmt(monthlyDisposable)}</span>
+            </span>
+            <span style={{ fontSize: 12, color: allocBarColor, fontWeight: 600 }}>
+              {monthlyDisposable > 0 ? `${Math.min(Math.round((totalMonthlyAllocated / monthlyDisposable) * 100), 999)}% allocated` : '—'}
+            </span>
+          </div>
+          <div className="progress-bar" style={{ height: 10, borderRadius: 6 }}>
+            <div className="progress-fill" style={{ width: `${Math.min(100, allocPct)}%`, background: allocBarColor, borderRadius: 6, transition: 'width 0.3s' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12 }}>
+            <span style={{ color: 'var(--muted)' }}>
+              <span style={{ color: allocBarColor, fontWeight: 600 }}>{fmt(totalMonthlyAllocated)}</span> allocated
+            </span>
+            <span style={{ color: unallocated >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+              {fmt(Math.abs(unallocated))} {unallocated >= 0 ? 'remaining' : 'over budget'}
+            </span>
+          </div>
+        </div>
+
+        {/* Allocation list */}
+        {monthlyAllocations.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted)', fontSize: 13, borderTop: '1px solid var(--border)' }}>
+            No allocations yet — add one to start planning your disposable income
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            {monthlyAllocations.map(alloc => {
+              const color = ALLOC_COLORS[alloc.category] || '#9e9e9e'
+              const barPct = monthlyDisposable > 0 ? Math.min((alloc.amount / monthlyDisposable) * 100, 100) : 0
+              return (
+                <div key={alloc.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{alloc.label}</span>
+                      <span className="badge" style={{ background: `${color}22`, color, fontSize: 10, padding: '2px 7px' }}>{alloc.category}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="number"
+                        step="10"
+                        min="0"
+                        value={alloc.amount}
+                        onChange={e => updateData('monthlyAllocations', monthlyAllocations.map(a => a.id === alloc.id ? { ...a, amount: parseFloat(e.target.value) || 0 } : a))}
+                        style={{ width: 80, padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color, fontWeight: 700, textAlign: 'right', fontSize: 14, fontFamily: 'Space Grotesk, sans-serif' }}
+                      />
+                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>/mo</span>
+                      <button className="icon-btn danger" onClick={() => updateData('monthlyAllocations', monthlyAllocations.filter(a => a.id !== alloc.id))}>✕</button>
+                    </div>
+                  </div>
+                  <div className="progress-bar" style={{ height: 4, borderRadius: 3 }}>
+                    <div className="progress-fill" style={{ width: `${barPct}%`, background: color, borderRadius: 3 }} />
+                  </div>
+                  {monthlyDisposable > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                      {barPct.toFixed(1)}% of disposable income
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Stacked category bar */}
+        {stackedSegments.length > 0 && monthlyDisposable > 0 && (
+          <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>Allocation by Category</div>
+            <div style={{ display: 'flex', height: 18, borderRadius: 6, overflow: 'hidden', gap: 2 }}>
+              {stackedSegments.map(seg => (
+                <div
+                  key={seg.cat}
+                  title={`${seg.cat}: ${fmt(seg.total)}`}
+                  style={{
+                    width: `${Math.min(100, (seg.total / monthlyDisposable) * 100)}%`,
+                    background: seg.color,
+                    minWidth: 3,
+                    transition: 'width 0.3s',
+                  }}
+                />
+              ))}
+              {unallocated > 0 && (
+                <div style={{ flex: 1, background: 'var(--surface2)', minWidth: 2 }} />
+              )}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginTop: 10 }}>
+              {stackedSegments.map(seg => (
+                <div key={seg.cat} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{seg.cat}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{fmt(seg.total)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid-2">
         {/* Income */}
         <div className="card">
@@ -306,117 +417,6 @@ export function Budget({ data, updateData }) {
             ))}
           </div>
         </div>
-      </div>
-
-      {/* Disposable Income Allocation Planner */}
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <div className="section-title">Disposable Income Planner</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{fmt(monthlyDisposable)}/month to allocate</div>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setAllocModal(true)}>+ Add Allocation</button>
-        </div>
-
-        {/* Allocation status bar */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-              Monthly Disposable Income: <span style={{ color: 'var(--text)', fontWeight: 600 }}>{fmt(monthlyDisposable)}</span>
-            </span>
-            <span style={{ fontSize: 12, color: allocBarColor, fontWeight: 600 }}>
-              {monthlyDisposable > 0 ? `${Math.min(Math.round((totalMonthlyAllocated / monthlyDisposable) * 100), 999)}% allocated` : '—'}
-            </span>
-          </div>
-          <div className="progress-bar" style={{ height: 10, borderRadius: 6 }}>
-            <div className="progress-fill" style={{ width: `${Math.min(100, allocPct)}%`, background: allocBarColor, borderRadius: 6, transition: 'width 0.3s' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12 }}>
-            <span style={{ color: 'var(--muted)' }}>
-              <span style={{ color: allocBarColor, fontWeight: 600 }}>{fmt(totalMonthlyAllocated)}</span> allocated
-            </span>
-            <span style={{ color: unallocated >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
-              {fmt(Math.abs(unallocated))} {unallocated >= 0 ? 'remaining' : 'over budget'}
-            </span>
-          </div>
-        </div>
-
-        {/* Allocation list */}
-        {monthlyAllocations.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted)', fontSize: 13, borderTop: '1px solid var(--border)' }}>
-            No allocations yet — add one to start planning your disposable income
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-            {monthlyAllocations.map(alloc => {
-              const color = ALLOC_COLORS[alloc.category] || '#9e9e9e'
-              const barPct = monthlyDisposable > 0 ? Math.min((alloc.amount / monthlyDisposable) * 100, 100) : 0
-              return (
-                <div key={alloc.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 600, fontSize: 13 }}>{alloc.label}</span>
-                      <span className="badge" style={{ background: `${color}22`, color, fontSize: 10, padding: '2px 7px' }}>{alloc.category}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input
-                        type="number"
-                        step="10"
-                        min="0"
-                        value={alloc.amount}
-                        onChange={e => updateData('monthlyAllocations', monthlyAllocations.map(a => a.id === alloc.id ? { ...a, amount: parseFloat(e.target.value) || 0 } : a))}
-                        style={{ width: 80, padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color, fontWeight: 700, textAlign: 'right', fontSize: 14, fontFamily: 'Space Grotesk, sans-serif' }}
-                      />
-                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>/mo</span>
-                      <button className="icon-btn danger" onClick={() => updateData('monthlyAllocations', monthlyAllocations.filter(a => a.id !== alloc.id))}>✕</button>
-                    </div>
-                  </div>
-                  <div className="progress-bar" style={{ height: 4, borderRadius: 3 }}>
-                    <div className="progress-fill" style={{ width: `${barPct}%`, background: color, borderRadius: 3 }} />
-                  </div>
-                  {monthlyDisposable > 0 && (
-                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
-                      {barPct.toFixed(1)}% of disposable income
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Stacked category bar */}
-        {stackedSegments.length > 0 && monthlyDisposable > 0 && (
-          <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>Allocation by Category</div>
-            <div style={{ display: 'flex', height: 18, borderRadius: 6, overflow: 'hidden', gap: 2 }}>
-              {stackedSegments.map(seg => (
-                <div
-                  key={seg.cat}
-                  title={`${seg.cat}: ${fmt(seg.total)}`}
-                  style={{
-                    width: `${Math.min(100, (seg.total / monthlyDisposable) * 100)}%`,
-                    background: seg.color,
-                    minWidth: 3,
-                    transition: 'width 0.3s',
-                  }}
-                />
-              ))}
-              {unallocated > 0 && (
-                <div style={{ flex: 1, background: 'var(--surface2)', minWidth: 2 }} />
-              )}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginTop: 10 }}>
-              {stackedSegments.map(seg => (
-                <div key={seg.cat} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{seg.cat}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>{fmt(seg.total)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {modal?.type === 'income' && (
