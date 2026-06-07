@@ -91,7 +91,7 @@ export function DailyPerformance({ data, prices }) {
     return best
   }, [currentAssetBreakdown, yesterdaySnap, livePricesLoaded])
 
-  function makeRows(items, getKey, getValue) {
+  function makeRows(items, getKey, getValue, getSymbol) {
     const prevBd = yesterdaySnap?.asset_breakdown ?? null
     return items.map(item => {
       const key = getKey(item)
@@ -99,24 +99,25 @@ export function DailyPerformance({ data, prices }) {
       const prev = prevBd && livePricesLoaded ? (prevBd[key]?.value ?? null) : null
       const delta = prev != null ? val - prev : null
       const pct   = delta != null && prev !== 0 ? (delta / Math.abs(prev)) * 100 : null
-      return { key, name: item.name, symbol: getKey(item), val, delta, pct }
+      return { key, name: item.name, symbol: getSymbol ? getSymbol(item) : getKey(item), val, delta, pct }
     }).sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
   }
 
   const cryptoRows = useMemo(() => makeRows(
-    data.crypto,
+    data.crypto.filter(c => c.amount > 0),
     c => c.coinId,
-    c => c.amount * (prices?.crypto?.[c.coinId]?.aud ?? 0)
+    c => c.amount * (prices?.crypto?.[c.coinId]?.aud ?? 0),
+    c => c.symbol
   ), [data.crypto, prices, yesterdaySnap, livePricesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stocksRows = useMemo(() => makeRows(
-    data.stocks,
+    data.stocks.filter(s => s.shares > 0),
     s => s.ticker,
     s => s.shares * (prices?.stocks?.[s.ticker]?.aud ?? 0)
   ), [data.stocks, prices, yesterdaySnap, livePricesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const etfRows = useMemo(() => makeRows(
-    data.etfs,
+    data.etfs.filter(e => e.units > 0),
     e => e.ticker,
     e => e.units * (prices?.etfs?.[e.ticker]?.aud ?? 0)
   ), [data.etfs, prices, yesterdaySnap, livePricesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
