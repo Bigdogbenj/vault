@@ -391,9 +391,14 @@ export function Portfolio({ data, updateData, prices }) {
   const [modal, setModal] = useState(null)
   const [editVal, setEditVal] = useState(null)
   const [histRange, setHistRange] = useState('1M')
-  const [projYears, setProjYears] = useState(10)
-  const [projRate, setProjRate] = useState({ crypto: 20, etfs: 8, stocks: 12 })
-  const [projMonthly, setProjMonthly] = useState({ crypto: 200, etfs: 500, stocks: 300 })
+  const projSettings = data.projSettings ?? { years: 10, rate: { crypto: 15, etfs: 11, stocks: 15 }, monthly: { crypto: 200, etfs: 500, stocks: 300 } }
+  const projYears   = projSettings.years
+  const projRate    = projSettings.rate
+  const projMonthly = projSettings.monthly
+  const setProjSettings = (patch) => updateData('projSettings', { ...projSettings, ...patch })
+  const setProjYears   = (v) => setProjSettings({ years: v })
+  const setProjRate    = (fn) => setProjSettings({ rate: typeof fn === 'function' ? fn(projRate) : fn })
+  const setProjMonthly = (fn) => setProjSettings({ monthly: typeof fn === 'function' ? fn(projMonthly) : fn })
 
   const snapshots = useSnapshots()
   const usdToAud = prices?.usdToAud ?? 1.55

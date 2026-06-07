@@ -65,6 +65,7 @@ export default function App() {
       if (!prev.poolDeployments) extras.poolDeployments = []
       if (!prev.transactions) extras.transactions = []
       if (!prev.monthlyAllocations) extras.monthlyAllocations = []
+      if (!prev.projSettings) extras.projSettings = { years: 10, rate: { crypto: 15, etfs: 11, stocks: 15 }, monthly: { crypto: 200, etfs: 500, stocks: 300 } }
       const hasExtras = Object.keys(extras).length > 0
 
       if (missingCrypto.length === 0 && missingStocks.length === 0 && missingEtfs.length === 0 && !etfsChanged && !goalsChanged && !hasExtras) return prev
