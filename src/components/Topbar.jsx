@@ -4,7 +4,6 @@ const PAGE_TITLES = {
   accounts: 'Accounts',
   budget: 'Budget',
   goals: 'Goals',
-  calculator: 'Calculator',
   projects: 'Projects',
   schedules: 'Schedules',
   debts: 'Debts',

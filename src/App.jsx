@@ -6,7 +6,6 @@ import { Portfolio } from './pages/Portfolio'
 import { Accounts } from './pages/Accounts'
 import { Budget } from './pages/Budget'
 import { Goals } from './pages/Goals'
-import { Calculator } from './pages/Calculator'
 import { Projects } from './pages/Projects'
 import { Debts } from './pages/Debts'
 import { Schedules } from './pages/Schedules'
@@ -201,7 +200,6 @@ export default function App() {
           {page === 'accounts'   && <Accounts   {...pageProps} />}
           {page === 'budget'     && <Budget     {...pageProps} setPage={setPage} />}
           {page === 'goals'      && <Goals      {...pageProps} />}
-          {page === 'calculator' && <Calculator {...pageProps} />}
           {page === 'projects'   && <Projects   {...pageProps} />}
           {page === 'debts'      && <Debts      {...pageProps} />}
           {page === 'schedules'  && <Schedules  {...pageProps} />}
