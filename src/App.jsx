@@ -199,7 +199,7 @@ export default function App() {
           {page === 'performance' && <DailyPerformance data={data} prices={prices} />}
           {page === 'portfolio'  && <Portfolio  {...pageProps} />}
           {page === 'accounts'   && <Accounts   {...pageProps} />}
-          {page === 'budget'     && <Budget     {...pageProps} />}
+          {page === 'budget'     && <Budget     {...pageProps} setPage={setPage} />}
           {page === 'goals'      && <Goals      {...pageProps} />}
           {page === 'calculator' && <Calculator {...pageProps} />}
           {page === 'projects'   && <Projects   {...pageProps} />}

@@ -80,8 +80,21 @@ function ExpenseModal({ item, onClose, onSave }) {
   )
 }
 
-function AllocModal({ onClose, onSave }) {
-  const [form, setForm] = useState({ label: '', category: 'Crypto', amount: 0 })
+function AllocModal({ onClose, onSave, projects = [] }) {
+  const [form, setForm] = useState({ label: '', category: 'Crypto', amount: 0, projectId: null })
+
+  function handleCategoryChange(cat) {
+    const firstProject = projects[0]
+    const projectId = cat === 'Goals' && firstProject ? firstProject.id : null
+    const label = cat === 'Goals' && firstProject ? firstProject.name : ''
+    setForm(f => ({ ...f, category: cat, projectId, label: f.label || label }))
+  }
+
+  function handleProjectChange(id) {
+    const project = projects.find(p => p.id === id)
+    setForm(f => ({ ...f, projectId: id, label: project ? project.name : f.label }))
+  }
+
   return (
     <Modal title="Add Allocation" onClose={onClose} size="modal-sm">
       <div className="form-group">
@@ -96,10 +109,18 @@ function AllocModal({ onClose, onSave }) {
       </div>
       <div className="form-group">
         <label className="form-label">Category</label>
-        <select className="form-select" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+        <select className="form-select" value={form.category} onChange={e => handleCategoryChange(e.target.value)}>
           {ALLOC_CATEGORIES.map(c => <option key={c}>{c}</option>)}
         </select>
       </div>
+      {form.category === 'Goals' && projects.length > 0 && (
+        <div className="form-group">
+          <label className="form-label">Project</label>
+          <select className="form-select" value={form.projectId ?? ''} onChange={e => handleProjectChange(e.target.value)}>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+      )}
       <div className="form-group">
         <label className="form-label">Monthly Amount (AUD)</label>
         <input
@@ -119,7 +140,7 @@ function AllocModal({ onClose, onSave }) {
   )
 }
 
-export function Budget({ data, updateData }) {
+export function Budget({ data, updateData, setPage }) {
   const [modal, setModal] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [allocModal, setAllocModal] = useState(false)
@@ -297,6 +318,17 @@ export function Budget({ data, updateData }) {
             </div>
           </div>
         )}
+
+        {/* Schedules shortcut */}
+        <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
+          <span>💡 Ready to automate? Set up recurring transfers in</span>
+          <button
+            onClick={() => setPage('schedules')}
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--amber)', fontWeight: 600, fontSize: 12 }}
+          >
+            Schedules →
+          </button>
+        </div>
       </div>
 
       <div className="grid-2">
@@ -452,6 +484,7 @@ export function Budget({ data, updateData }) {
 
       {allocModal && (
         <AllocModal
+          projects={data.projects ?? []}
           onClose={() => setAllocModal(false)}
           onSave={alloc => updateData('monthlyAllocations', [...monthlyAllocations, alloc])}
         />

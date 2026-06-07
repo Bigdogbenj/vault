@@ -170,7 +170,7 @@ export function Dashboard({ data, updateData, prices }) {
           <div className="stat-value" style={{ fontSize: 26, color: trueNetWorth < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(trueNetWorth)}</div>
           <div className="stat-sub" style={{ marginTop: 6 }}>Assets minus {fmt(totalDebt)} debt</div>
         </div>
-        <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% savings rate`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
+        <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% · ${fmt(savings)}/mo`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
       </div>
 
       {/* Charts row */}
