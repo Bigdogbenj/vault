@@ -46,6 +46,7 @@ export function Dashboard({ data, updateData, prices }) {
   const [editAccount, setEditAccount] = useState(null)
   const [greeting] = useState(getGreeting)
   const [now, setNow] = useState(new Date())
+  const [mountedAt] = useState(() => Date.now())
   const weather = useWeather()
   const snapshots = useSnapshots()
   const [range, setRange] = useState('1M')
@@ -58,7 +59,7 @@ export function Dashboard({ data, updateData, prices }) {
   const usdToAud = prices?.usdToAud ?? 1.55
   const totalBalance = useMemo(
     () => data.accounts.reduce((s, a) => s + resolvedAccountBalance(a, data, prices), 0),
-    [data.accounts, data.crypto, data.stocks, data.etfs, prices] // eslint-disable-line react-hooks/exhaustive-deps
+    [data.accounts, data.crypto, data.stocks, data.etfs, prices, mountedAt] // eslint-disable-line react-hooks/exhaustive-deps
   )
   const totalDebt = useMemo(
     () => (data.debts ?? []).reduce((s, d) => s + (d.remaining || 0), 0),
@@ -66,7 +67,7 @@ export function Dashboard({ data, updateData, prices }) {
   )
   const superBalance = useMemo(
     () => { const a = data.accounts.find(acc => acc.type === 'Super'); return a ? resolvedAccountBalance(a, data, prices) : 0 },
-    [data.accounts, prices] // eslint-disable-line react-hooks/exhaustive-deps
+    [data.accounts, prices, mountedAt] // eslint-disable-line react-hooks/exhaustive-deps
   )
   const liquidNetWorth = totalBalance - superBalance
   const trueNetWorth = totalBalance - totalDebt

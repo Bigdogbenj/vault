@@ -110,7 +110,7 @@ export function usePrices(crypto = [], stocks = [], etfs = []) {
     }
 
     fetchAll()
-    const iv = setInterval(fetchAll, 60_000)
+    const iv = setInterval(fetchAll, 30_000)
     return () => {
       mountedRef.current = false
       clearInterval(iv)
