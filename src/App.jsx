@@ -115,7 +115,9 @@ export default function App() {
         const fromLabel = s.type === 'income'
           ? (s.sourceLabel || 'Income')
           : (prev.accounts.find(a => a.id === s.fromAccount)?.name ?? 'Unknown')
-        const toLabel = s.toPool
+        const toLabel = s.type === 'expense'
+          ? 'Expense'
+          : s.toPool
           ? `${s.toPool.charAt(0).toUpperCase() + s.toPool.slice(1)} Pool`
           : (prev.accounts.find(a => a.id === s.toAccount)?.name ?? 'Unknown')
 
@@ -133,6 +135,9 @@ export default function App() {
           } else if (s.toPool && pools[s.toPool] != null) {
             pools[s.toPool].available = (pools[s.toPool].available || 0) + s.amount
           }
+        } else if (s.type === 'expense' && s.fromAccount) {
+          const i = accounts.findIndex(a => a.id === s.fromAccount)
+          if (i >= 0) accounts[i].balance = (accounts[i].balance || 0) - s.amount
         }
 
         newLogs.push({

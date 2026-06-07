@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
-import { fmt, genId, getNextFireTime } from '../utils'
+import { fmt, genId, getNextFireTime, toMonthly } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
 import { DEFAULTS } from '../data/defaults'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -9,10 +10,22 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const FREQ_LABELS = { once: 'Once', weekly: 'Weekly', fortnightly: 'Fortnightly', monthly: 'Monthly', quarterly: 'Quarterly' }
 
 const POOL_CONFIG = {
-  crypto: { label: 'Crypto Pool',  color: '#a87ef0', icon: '🔮' },
-  stocks: { label: 'Stocks Pool',  color: '#4caf7d', icon: '📈' },
-  etfs:   { label: 'ETF Pool',     color: '#5b9ef0', icon: '🏦' },
+  crypto: { label: 'Crypto Pool', color: '#a87ef0', icon: '🔮' },
+  stocks: { label: 'Stocks Pool', color: '#4caf7d', icon: '📈' },
+  etfs:   { label: 'ETF Pool',    color: '#5b9ef0', icon: '🏦' },
 }
+
+const TYPE_CONFIG = {
+  income:   { color: '#4caf7d', bg: 'rgba(76,175,125,0.12)',  border: '#4caf7d', label: 'Income'   },
+  transfer: { color: '#5b9ef0', bg: 'rgba(91,158,240,0.12)',  border: '#5b9ef0', label: 'Transfer' },
+  expense:  { color: '#e05b5b', bg: 'rgba(224,91,91,0.12)',   border: '#e05b5b', label: 'Expense'  },
+}
+
+const SECTIONS = [
+  { type: 'income',   label: 'Income',             emptyText: 'No income schedules set up' },
+  { type: 'transfer', label: 'Internal Transfers',  emptyText: 'No transfer schedules set up' },
+  { type: 'expense',  label: 'Expenses',            emptyText: 'No expense schedules set up' },
+]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -37,9 +50,15 @@ function fmtLogDate(iso) {
 }
 
 function scheduleSubtitle(s, accounts) {
-  const fromName = s.type === 'income'
-    ? (s.sourceLabel || 'Income')
-    : (accounts.find(a => a.id === s.fromAccount)?.name ?? '—')
+  if (s.type === 'income') {
+    const toName = accounts.find(a => a.id === s.toAccount)?.name ?? '—'
+    return `${s.sourceLabel || 'Income'} → ${toName}`
+  }
+  if (s.type === 'expense') {
+    const fromName = accounts.find(a => a.id === s.fromAccount)?.name ?? '—'
+    return `${fromName} → Expense`
+  }
+  const fromName = accounts.find(a => a.id === s.fromAccount)?.name ?? '—'
   const toName = s.toPool
     ? POOL_CONFIG[s.toPool]?.label
     : (accounts.find(a => a.id === s.toAccount)?.name ?? '—')
@@ -73,17 +92,16 @@ function Toggle({ checked, onChange }) {
 
 function ScheduleCard({ schedule: s, accounts, onEdit, onDelete, onToggle }) {
   const nextFire = useMemo(() => s.active ? getNextFireTime(s, new Date()) : null, [s])
-  const typeColor = s.type === 'income' ? 'var(--green)' : 'var(--blue)'
-  const typeBg   = s.type === 'income' ? 'rgba(76,175,125,0.12)' : 'rgba(91,158,240,0.12)'
+  const tc = TYPE_CONFIG[s.type] ?? TYPE_CONFIG.transfer
 
   return (
-    <div className="card" style={{ padding: '16px 18px', borderLeft: `3px solid ${s.type === 'income' ? '#4caf7d' : '#5b9ef0'}` }}>
+    <div className="card" style={{ padding: '16px 18px', borderLeft: `3px solid ${tc.border}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 14 }}>{s.name}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: typeBg, color: typeColor, flexShrink: 0 }}>
-              {s.type === 'income' ? 'Income' : 'Transfer'}
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: tc.bg, color: tc.color, flexShrink: 0 }}>
+              {tc.label}
             </span>
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>{scheduleSubtitle(s, accounts)}</div>
@@ -95,11 +113,10 @@ function ScheduleCard({ schedule: s, accounts, onEdit, onDelete, onToggle }) {
           <button className="icon-btn danger" onClick={onDelete} title="Delete">✕</button>
         </div>
       </div>
-
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Amount</div>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 16, color: typeColor }}>{fmt(s.amount)}</div>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 16, color: tc.color }}>{fmt(s.amount)}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>
@@ -133,6 +150,7 @@ function ScheduleModal({ item, accounts, onClose, onSave }) {
     const saved = { ...form }
     if (toType === 'pool') { saved.toAccount = null } else { saved.toPool = null }
     if (saved.type === 'income') { saved.fromAccount = null }
+    if (saved.type === 'expense') { saved.toAccount = null; saved.toPool = null }
     onSave(saved)
     onClose()
   }
@@ -153,6 +171,7 @@ function ScheduleModal({ item, accounts, onClose, onSave }) {
           <select className="form-select" value={form.type} onChange={e => set('type', e.target.value)}>
             <option value="income">Income</option>
             <option value="transfer">Transfer</option>
+            <option value="expense">Expense</option>
           </select>
         </div>
       </div>
@@ -208,7 +227,7 @@ function ScheduleModal({ item, accounts, onClose, onSave }) {
         </div>
       </div>
 
-      {form.type === 'income' ? (
+      {form.type === 'income' && (
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Source Label</label>
@@ -222,7 +241,19 @@ function ScheduleModal({ item, accounts, onClose, onSave }) {
             </select>
           </div>
         </div>
-      ) : (
+      )}
+
+      {form.type === 'expense' && (
+        <div className="form-group">
+          <label className="form-label">Deduct From</label>
+          <select className="form-select" value={form.fromAccount ?? ''} onChange={e => set('fromAccount', e.target.value)}>
+            <option value="">— select —</option>
+            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      {form.type === 'transfer' && (
         <>
           <div className="form-group">
             <label className="form-label">From Account</label>
@@ -297,7 +328,6 @@ function PoolCard({ poolId, pool, onDeploy, onEditContrib }) {
           Deploy →
         </button>
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: '10px 12px' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>Available</div>
@@ -308,7 +338,6 @@ function PoolCard({ poolId, pool, onDeploy, onEditContrib }) {
           <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18 }}>{fmt(pool.deployedTotal)}</div>
         </div>
       </div>
-
       {pool.lastDeployedAt && (
         <div style={{ marginTop: 10, fontSize: 11, color: 'var(--muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
           Last deployed {fmt(pool.lastDeployedAmount ?? 0)} on {new Date(pool.lastDeployedAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -345,7 +374,6 @@ function DeployModal({ poolId, pool, data, onClose, onDeploy }) {
           <span style={{ fontWeight: 700, color: cfg.color }}>{fmt(pool.available)}</span>
         </div>
       </div>
-
       <div className="form-group">
         <label className="form-label">Amount</label>
         <input className="form-input" type="number" step="any" min="0" max={pool.available} value={amount} onChange={e => setAmount(e.target.value)} />
@@ -397,12 +425,11 @@ export function Schedules({ data, updateData }) {
   }
 
   const deleteSchedule = (id) => updateData('schedules', schedules.filter(s => s.id !== id))
-
   const toggleSchedule = (id) => updateData('schedules', schedules.map(s => s.id === id ? { ...s, active: !s.active } : s))
 
   const handleDeploy = ({ poolId, amount, asset, deployedAt }) => {
     const newDeployment = { id: genId(), poolId, amount, asset, deployedAt }
-    const updatedPools = {
+    updateData('pools', {
       ...pools,
       [poolId]: {
         ...pools[poolId],
@@ -411,10 +438,59 @@ export function Schedules({ data, updateData }) {
         lastDeployedAt: deployedAt,
         lastDeployedAmount: amount,
       },
-    }
-    updateData('pools', updatedPools)
+    })
     updateData('poolDeployments', [newDeployment, ...poolDeployments])
   }
+
+  // ── Transfer Summary stats ────────────────────────────────────────────────
+  const { transferGroups, expenseGroups, totalTransferred, totalExpensesPaid, maxTransfer, maxExpense } = useMemo(() => {
+    const tMap = {}, eMap = {}
+    let totalT = 0, totalE = 0
+    for (const entry of transferLog) {
+      if (entry.type === 'transfer') {
+        tMap[entry.scheduleName] = tMap[entry.scheduleName] ?? { name: entry.scheduleName, total: 0, count: 0 }
+        tMap[entry.scheduleName].total += entry.amount
+        tMap[entry.scheduleName].count++
+        totalT += entry.amount
+      } else if (entry.type === 'expense') {
+        eMap[entry.scheduleName] = eMap[entry.scheduleName] ?? { name: entry.scheduleName, total: 0, count: 0 }
+        eMap[entry.scheduleName].total += entry.amount
+        eMap[entry.scheduleName].count++
+        totalE += entry.amount
+      }
+    }
+    const tGroups = Object.values(tMap).sort((a, b) => b.total - a.total)
+    const eGroups = Object.values(eMap).sort((a, b) => b.total - a.total)
+    return {
+      transferGroups: tGroups,
+      expenseGroups: eGroups,
+      totalTransferred: totalT,
+      totalExpensesPaid: totalE,
+      maxTransfer: tGroups[0]?.total ?? 1,
+      maxExpense: eGroups[0]?.total ?? 1,
+    }
+  }, [transferLog])
+
+  // ── Accumulated chart data ────────────────────────────────────────────────
+  const chartData = useMemo(() => {
+    if (transferLog.length < 2) return []
+    const byMonth = {}
+    for (const entry of transferLog) {
+      const d = new Date(entry.firedAt)
+      const key = `${d.toLocaleString('en-AU', { month: 'short' })} ${d.getFullYear()}`
+      byMonth[key] = byMonth[key] ?? { transfers: 0, expenses: 0, ts: d.getTime() }
+      if (entry.type === 'transfer') byMonth[key].transfers += entry.amount
+      if (entry.type === 'expense') byMonth[key].expenses += entry.amount
+    }
+    let cumT = 0, cumE = 0
+    return Object.entries(byMonth)
+      .sort(([, a], [, b]) => a.ts - b.ts)
+      .map(([month, { transfers, expenses }]) => {
+        cumT += transfers
+        cumE += expenses
+        return { month, transfers: Math.round(cumT), expenses: Math.round(cumE) }
+      })
+  }, [transferLog])
 
   const activeCount = schedules.filter(s => s.active).length
 
@@ -441,26 +517,146 @@ export function Schedules({ data, updateData }) {
       {/* ── Schedules tab ─────────────────────────────────────────── */}
       {tab === 'schedules' && (
         <>
-          {schedules.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>📅</div>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>No schedules yet</div>
-              <div style={{ fontSize: 13 }}>Add a schedule to automate your transfers</div>
+          {/* Grouped sections */}
+          {SECTIONS.map(({ type, label, emptyText }) => {
+            const tc = TYPE_CONFIG[type]
+            const group = schedules.filter(s => s.type === type)
+            const monthlyTotal = group.filter(s => s.active).reduce((sum, s) => sum + toMonthly(s.amount, s.frequency), 0)
+            return (
+              <div key={type}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 3, height: 18, borderRadius: 2, background: tc.border }} />
+                    <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 15 }}>{label}</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--surface2)', padding: '1px 8px', borderRadius: 20 }}>{group.length}</span>
+                  </div>
+                  {monthlyTotal > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{fmt(monthlyTotal)}/mo active</span>
+                  )}
+                </div>
+                {group.length === 0 ? (
+                  <div style={{ padding: '12px 16px', background: 'var(--surface2)', borderRadius: 10, border: '1px dashed var(--border)', color: 'var(--muted)', fontSize: 13, marginBottom: 20 }}>
+                    {emptyText}
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14, marginBottom: 20 }}>
+                    {group.map(s => (
+                      <ScheduleCard key={s.id} schedule={s} accounts={accounts}
+                        onEdit={() => setModal({ item: s })}
+                        onDelete={() => deleteSchedule(s.id)}
+                        onToggle={() => toggleSchedule(s.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Transfer Summary */}
+          <div className="card">
+            <div className="section-header">
+              <span className="section-title">Transfer Summary</span>
             </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
-              {schedules.map(s => (
-                <ScheduleCard
-                  key={s.id}
-                  schedule={s}
-                  accounts={accounts}
-                  onEdit={() => setModal({ item: s })}
-                  onDelete={() => deleteSchedule(s.id)}
-                  onToggle={() => toggleSchedule(s.id)}
-                />
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+              {/* Transfers column */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Transfers</div>
+                {transferGroups.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>No transfers logged yet</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {transferGroups.map(g => (
+                      <div key={g.name}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{g.name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{g.count}× · {fmt(g.total)}</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{ width: `${(g.total / maxTransfer) * 100}%`, background: '#5b9ef0' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Expenses column */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Expenses</div>
+                {expenseGroups.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>No expenses logged yet</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {expenseGroups.map(g => (
+                      <div key={g.name}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>{g.name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{g.count}× · {fmt(g.total)}</span>
+                        </div>
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{ width: `${(g.total / maxExpense) * 100}%`, background: '#e05b5b' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+            <div style={{ display: 'flex', gap: 32, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 13 }}>
+                Total invested via transfers: <span style={{ fontWeight: 700, color: 'var(--blue)' }}>{fmt(totalTransferred)}</span>
+              </div>
+              <div style={{ fontSize: 13 }}>
+                Total expenses paid: <span style={{ fontWeight: 700, color: '#e05b5b' }}>{fmt(totalExpensesPaid)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Accumulated Transfers chart */}
+          <div className="card">
+            <div className="section-header">
+              <span className="section-title">Accumulated Transfers Over Time</span>
+            </div>
+            {chartData.length < 2 ? (
+              <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>
+                Not enough data yet — history builds as schedules fire
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
+                  {[{ label: 'Transfers', color: '#5b9ef0' }, { label: 'Expenses', color: '#e05b5b' }].map(({ label, color }) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 20, height: 3, borderRadius: 2, background: color }} />
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="gradT" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#5b9ef0" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#5b9ef0" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="gradE" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#e05b5b" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#e05b5b" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                    <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
+                    <Tooltip
+                      contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}
+                      formatter={(v, name) => [fmt(v), name === 'transfers' ? 'Transfers' : 'Expenses']}
+                      labelStyle={{ color: 'var(--muted)' }}
+                    />
+                    <Area type="monotone" dataKey="transfers" stroke="#5b9ef0" strokeWidth={2} fill="url(#gradT)" dot={false} />
+                    <Area type="monotone" dataKey="expenses"  stroke="#e05b5b" strokeWidth={2} fill="url(#gradE)" dot={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </>
+            )}
+          </div>
 
           {/* Transfer History */}
           <div className="card">
@@ -477,23 +673,28 @@ export function Schedules({ data, updateData }) {
                     <tr>
                       <th>Date &amp; Time</th>
                       <th>Schedule</th>
+                      <th>Type</th>
                       <th>From</th>
                       <th>To</th>
                       <th style={{ textAlign: 'right' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {transferLog.map(entry => (
-                      <tr key={entry.id}>
-                        <td style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtLogDate(entry.firedAt)}</td>
-                        <td style={{ fontWeight: 600 }}>{entry.scheduleName}</td>
-                        <td style={{ color: 'var(--muted)', fontSize: 13 }}>{entry.fromLabel}</td>
-                        <td style={{ color: 'var(--muted)', fontSize: 13 }}>{entry.toLabel}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: entry.type === 'income' ? 'var(--green)' : 'var(--text)', whiteSpace: 'nowrap' }}>
-                          {entry.type === 'income' ? '+' : ''}{fmt(entry.amount)}
-                        </td>
-                      </tr>
-                    ))}
+                    {transferLog.map(entry => {
+                      const tc = TYPE_CONFIG[entry.type] ?? TYPE_CONFIG.transfer
+                      return (
+                        <tr key={entry.id}>
+                          <td style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{fmtLogDate(entry.firedAt)}</td>
+                          <td style={{ fontWeight: 600 }}>{entry.scheduleName}</td>
+                          <td><span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: tc.bg, color: tc.color }}>{tc.label}</span></td>
+                          <td style={{ color: 'var(--muted)', fontSize: 13 }}>{entry.fromLabel}</td>
+                          <td style={{ color: 'var(--muted)', fontSize: 13 }}>{entry.toLabel}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: entry.type === 'income' ? 'var(--green)' : entry.type === 'expense' ? '#e05b5b' : 'var(--text)', whiteSpace: 'nowrap' }}>
+                            {entry.type === 'income' ? '+' : entry.type === 'expense' ? '-' : ''}{fmt(entry.amount)}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -507,17 +708,13 @@ export function Schedules({ data, updateData }) {
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             {Object.entries(pools).map(([id, pool]) => (
-              <PoolCard
-                key={id}
-                poolId={id}
-                pool={pool}
+              <PoolCard key={id} poolId={id} pool={pool}
                 onDeploy={() => setDeployModal(id)}
                 onEditContrib={() => setEditContrib({ poolId: id, field: 'weeklyContribution', label: `${POOL_CONFIG[id].label} Weekly Contribution` })}
               />
             ))}
           </div>
 
-          {/* Deployment History */}
           <div className="card">
             <div className="section-header">
               <span className="section-title">Deployment History</span>
@@ -530,10 +727,7 @@ export function Schedules({ data, updateData }) {
                 <table>
                   <thead>
                     <tr>
-                      <th>Date</th>
-                      <th>Pool</th>
-                      <th>Asset</th>
-                      <th style={{ textAlign: 'right' }}>Amount</th>
+                      <th>Date</th><th>Pool</th><th>Asset</th><th style={{ textAlign: 'right' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -561,35 +755,17 @@ export function Schedules({ data, updateData }) {
 
       {/* Modals */}
       {modal && (
-        <ScheduleModal
-          item={modal.item}
-          accounts={accounts}
-          onClose={() => setModal(null)}
-          onSave={saveSchedule}
-        />
+        <ScheduleModal item={modal.item} accounts={accounts} onClose={() => setModal(null)} onSave={saveSchedule} />
       )}
-
       {deployModal && (
-        <DeployModal
-          poolId={deployModal}
-          pool={pools[deployModal]}
-          data={data}
-          onClose={() => setDeployModal(null)}
-          onDeploy={handleDeploy}
-        />
+        <DeployModal poolId={deployModal} pool={pools[deployModal]} data={data} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
       )}
-
       {editContrib && (
         <EditValueModal
           label={editContrib.label}
           value={pools[editContrib.poolId]?.[editContrib.field] ?? 0}
           onClose={() => setEditContrib(null)}
-          onSave={v => {
-            updateData('pools', {
-              ...pools,
-              [editContrib.poolId]: { ...pools[editContrib.poolId], [editContrib.field]: parseFloat(v) || 0 },
-            })
-          }}
+          onSave={v => updateData('pools', { ...pools, [editContrib.poolId]: { ...pools[editContrib.poolId], [editContrib.field]: parseFloat(v) || 0 } })}
         />
       )}
     </div>
