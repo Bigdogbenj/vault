@@ -5,9 +5,19 @@ import { Modal, EditValueModal } from '../components/Modal'
 
 const CATEGORIES = ['Housing', 'Food', 'Utilities', 'Transport', 'Subscriptions', 'Entertainment', 'Health', 'Other']
 const FREQUENCIES = ['weekly', 'fortnightly', 'monthly', 'quarterly']
-
 const FREQ_LABELS = { weekly: 'Weekly', fortnightly: 'Fortnightly', monthly: 'Monthly', quarterly: 'Quarterly' }
 const FREQ_BADGE = { weekly: 'badge-blue', fortnightly: 'badge-purple', monthly: 'badge-muted', quarterly: 'badge-amber' }
+
+const ALLOC_CATEGORIES = ['Crypto', 'Stocks', 'ETFs', 'Savings', 'Goals', 'Leisure', 'Other']
+const ALLOC_COLORS = {
+  Crypto:  '#f0a500',
+  Stocks:  '#5b9ef0',
+  ETFs:    '#4caf7d',
+  Savings: '#a87ef0',
+  Goals:   '#26c6da',
+  Leisure: '#6b7280',
+  Other:   '#9e9e9e',
+}
 
 function IncomeModal({ item, onClose, onSave }) {
   const [form, setForm] = useState(item || { name: '', amount: 0 })
@@ -70,9 +80,49 @@ function ExpenseModal({ item, onClose, onSave }) {
   )
 }
 
+function AllocModal({ onClose, onSave }) {
+  const [form, setForm] = useState({ label: '', category: 'Crypto', amount: 0 })
+  return (
+    <Modal title="Add Allocation" onClose={onClose} size="modal-sm">
+      <div className="form-group">
+        <label className="form-label">Label</label>
+        <input
+          className="form-input"
+          value={form.label}
+          onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+          placeholder="e.g. BTC buys, Date nights"
+          autoFocus
+        />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Category</label>
+        <select className="form-select" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+          {ALLOC_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Monthly Amount (AUD)</label>
+        <input
+          className="form-input"
+          type="number"
+          step="10"
+          min="0"
+          value={form.amount}
+          onChange={e => setForm(f => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+        />
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={() => { if (form.label.trim()) { onSave({ ...form, id: genId() }); onClose() } }}>Add</button>
+      </div>
+    </Modal>
+  )
+}
+
 export function Budget({ data, updateData }) {
   const [modal, setModal] = useState(null)
   const [editItem, setEditItem] = useState(null)
+  const [allocModal, setAllocModal] = useState(false)
 
   const totalIncome = useMemo(() => data.budget.income.reduce((s, i) => s + i.amount, 0), [data.budget.income])
   const totalExpenses = useMemo(
@@ -81,6 +131,27 @@ export function Budget({ data, updateData }) {
   )
   const savings = totalIncome - totalExpenses
   const savingsRate = totalIncome > 0 ? (savings / totalIncome * 100) : 0
+
+  const monthlyDisposable = savings
+  const monthlyAllocations = data.monthlyAllocations ?? []
+  const totalMonthlyAllocated = monthlyAllocations.reduce((s, a) => s + a.amount, 0)
+  const unallocated = monthlyDisposable - totalMonthlyAllocated
+
+  const allocPct = monthlyDisposable > 0 ? Math.min((totalMonthlyAllocated / monthlyDisposable) * 100, 120) : 0
+  const allocBarColor = monthlyDisposable <= 0 ? 'var(--muted)'
+    : totalMonthlyAllocated > monthlyDisposable ? 'var(--red)'
+    : totalMonthlyAllocated / monthlyDisposable >= 0.9 ? 'var(--amber)'
+    : 'var(--green)'
+
+  const stackedSegments = useMemo(() => {
+    const groups = {}
+    monthlyAllocations.forEach(a => {
+      groups[a.category] = (groups[a.category] || 0) + a.amount
+    })
+    return Object.entries(groups)
+      .filter(([, v]) => v > 0)
+      .map(([cat, total]) => ({ cat, total, color: ALLOC_COLORS[cat] || '#9e9e9e' }))
+  }, [monthlyAllocations])
 
   const pieData = useMemo(() => {
     const groups = {}
@@ -109,7 +180,8 @@ export function Budget({ data, updateData }) {
         </div>
         <div className="stat-card">
           <div className="stat-label">Savings Rate</div>
-          <div className="stat-value text-amber">{savingsRate.toFixed(0)}%</div>
+          <div className="stat-value text-amber" style={{ fontSize: 28 }}>{savingsRate.toFixed(0)}%</div>
+          <div className="stat-sub">{fmt(savings)}/month available</div>
           <div className="progress-bar mt-2">
             <div className="progress-fill" style={{ width: `${Math.min(100, savingsRate)}%`, background: 'var(--amber)' }} />
           </div>
@@ -160,7 +232,7 @@ export function Budget({ data, updateData }) {
           </div>
           <table>
             <thead><tr><th>Name</th><th>Category</th><th>Amount</th><th>Monthly</th><th></th></tr></thead>
-          <tbody>
+            <tbody>
               {data.budget.expenses.map(exp => {
                 const freq = exp.frequency || 'monthly'
                 const monthly = toMonthly(exp.amount, freq)
@@ -236,6 +308,117 @@ export function Budget({ data, updateData }) {
         </div>
       </div>
 
+      {/* Disposable Income Allocation Planner */}
+      <div className="card">
+        <div className="section-header">
+          <div>
+            <div className="section-title">Disposable Income Planner</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{fmt(monthlyDisposable)}/month to allocate</div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => setAllocModal(true)}>+ Add Allocation</button>
+        </div>
+
+        {/* Allocation status bar */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+              Monthly Disposable Income: <span style={{ color: 'var(--text)', fontWeight: 600 }}>{fmt(monthlyDisposable)}</span>
+            </span>
+            <span style={{ fontSize: 12, color: allocBarColor, fontWeight: 600 }}>
+              {monthlyDisposable > 0 ? `${Math.min(Math.round((totalMonthlyAllocated / monthlyDisposable) * 100), 999)}% allocated` : '—'}
+            </span>
+          </div>
+          <div className="progress-bar" style={{ height: 10, borderRadius: 6 }}>
+            <div className="progress-fill" style={{ width: `${Math.min(100, allocPct)}%`, background: allocBarColor, borderRadius: 6, transition: 'width 0.3s' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12 }}>
+            <span style={{ color: 'var(--muted)' }}>
+              <span style={{ color: allocBarColor, fontWeight: 600 }}>{fmt(totalMonthlyAllocated)}</span> allocated
+            </span>
+            <span style={{ color: unallocated >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+              {fmt(Math.abs(unallocated))} {unallocated >= 0 ? 'remaining' : 'over budget'}
+            </span>
+          </div>
+        </div>
+
+        {/* Allocation list */}
+        {monthlyAllocations.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted)', fontSize: 13, borderTop: '1px solid var(--border)' }}>
+            No allocations yet — add one to start planning your disposable income
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            {monthlyAllocations.map(alloc => {
+              const color = ALLOC_COLORS[alloc.category] || '#9e9e9e'
+              const barPct = monthlyDisposable > 0 ? Math.min((alloc.amount / monthlyDisposable) * 100, 100) : 0
+              return (
+                <div key={alloc.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{alloc.label}</span>
+                      <span className="badge" style={{ background: `${color}22`, color, fontSize: 10, padding: '2px 7px' }}>{alloc.category}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="number"
+                        step="10"
+                        min="0"
+                        value={alloc.amount}
+                        onChange={e => updateData('monthlyAllocations', monthlyAllocations.map(a => a.id === alloc.id ? { ...a, amount: parseFloat(e.target.value) || 0 } : a))}
+                        style={{ width: 80, padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color, fontWeight: 700, textAlign: 'right', fontSize: 14, fontFamily: 'Space Grotesk, sans-serif' }}
+                      />
+                      <span style={{ color: 'var(--muted)', fontSize: 12 }}>/mo</span>
+                      <button className="icon-btn danger" onClick={() => updateData('monthlyAllocations', monthlyAllocations.filter(a => a.id !== alloc.id))}>✕</button>
+                    </div>
+                  </div>
+                  <div className="progress-bar" style={{ height: 4, borderRadius: 3 }}>
+                    <div className="progress-fill" style={{ width: `${barPct}%`, background: color, borderRadius: 3 }} />
+                  </div>
+                  {monthlyDisposable > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                      {barPct.toFixed(1)}% of disposable income
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Stacked category bar */}
+        {stackedSegments.length > 0 && monthlyDisposable > 0 && (
+          <div style={{ marginTop: 24, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>Allocation by Category</div>
+            <div style={{ display: 'flex', height: 18, borderRadius: 6, overflow: 'hidden', gap: 2 }}>
+              {stackedSegments.map(seg => (
+                <div
+                  key={seg.cat}
+                  title={`${seg.cat}: ${fmt(seg.total)}`}
+                  style={{
+                    width: `${Math.min(100, (seg.total / monthlyDisposable) * 100)}%`,
+                    background: seg.color,
+                    minWidth: 3,
+                    transition: 'width 0.3s',
+                  }}
+                />
+              ))}
+              {unallocated > 0 && (
+                <div style={{ flex: 1, background: 'var(--surface2)', minWidth: 2 }} />
+              )}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', marginTop: 10 }}>
+              {stackedSegments.map(seg => (
+                <div key={seg.cat} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{seg.cat}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{fmt(seg.total)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {modal?.type === 'income' && (
         <IncomeModal item={modal.item} onClose={() => setModal(null)}
           onSave={form => {
@@ -264,6 +447,13 @@ export function Budget({ data, updateData }) {
             if (editItem.type === 'income') updateBudget('income', data.budget.income.map(i => i.id === editItem.item.id ? { ...i, amount: val } : i))
             else updateBudget('expenses', data.budget.expenses.map(e => e.id === editItem.item.id ? { ...e, amount: val } : e))
           }}
+        />
+      )}
+
+      {allocModal && (
+        <AllocModal
+          onClose={() => setAllocModal(false)}
+          onSave={alloc => updateData('monthlyAllocations', [...monthlyAllocations, alloc])}
         />
       )}
     </div>

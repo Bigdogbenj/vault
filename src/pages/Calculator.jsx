@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import { fmt, fmtFull, fmtNum, genId } from '../utils'
-import { Modal } from '../components/Modal'
+import { fmt, fmtFull, fmtNum } from '../utils'
 
 function buildProjection(currentVal, weeklySavings, weeks) {
   const pts = []
@@ -14,39 +13,12 @@ function buildProjection(currentVal, weeklySavings, weeks) {
   return pts
 }
 
-function AllocModal({ assets, onClose, onSave }) {
-  const [assetId, setAssetId] = useState(assets[0]?.id ?? '')
-  const [amount, setAmount] = useState(50)
-  const selected = assets.find(a => a.id === assetId)
-  return (
-    <Modal title="Add Weekly Allocation" onClose={onClose} size="modal-sm">
-      <div className="form-group">
-        <label className="form-label">Asset</label>
-        <select className="form-select" value={assetId} onChange={e => setAssetId(e.target.value)}>
-          {assets.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
-        </select>
-      </div>
-      <div className="form-group">
-        <label className="form-label">Weekly Amount (AUD)</label>
-        <input className="form-input" type="number" step="10" min="0" value={amount} onChange={e => setAmount(parseInt(e.target.value) || 0)} />
-      </div>
-      <div className="modal-actions">
-        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary" onClick={() => {
-          if (selected) onSave({ id: genId(), assetType: selected.type, symbol: selected.symbol, amount })
-        }}>Add</button>
-      </div>
-    </Modal>
-  )
-}
 
 export function Calculator({ data, updateData, prices }) {
   const [tab, setTab] = useState('crypto')
   const [selectedId, setSelectedId] = useState('')
   const [target, setTarget] = useState(10000)
   const [weeklySavings, setWeeklySavings] = useState(100)
-  const [allocModal, setAllocModal] = useState(false)
-
   const allAssets = useMemo(() => {
     const assets = []
     data.crypto.forEach(c => {
@@ -84,12 +56,6 @@ export function Calculator({ data, updateData, prices }) {
     if (!calc?.weeks || calc.weeks <= 0) return []
     return buildProjection(calc.currentValue, weeklySavings, calc.weeks)
   }, [calc, weeklySavings])
-
-  const totalWeekly = data.weeklyAllocations.reduce((s, a) => s + a.amount, 0)
-
-  const updateAlloc = (id, amount) => {
-    updateData('weeklyAllocations', data.weeklyAllocations.map(a => a.id === id ? { ...a, amount } : a))
-  }
 
   return (
     <div className="page">
@@ -204,64 +170,6 @@ export function Calculator({ data, updateData, prices }) {
         </div>
       )}
 
-      {/* Weekly Allocation Planner */}
-      <div className="card">
-        <div className="section-header">
-          <div>
-            <div className="section-title">Weekly Allocation Planner</div>
-            <div className="text-sm text-muted mt-1">Total: <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{fmt(totalWeekly)}/week</span></div>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setAllocModal(true)}>+ Add</button>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {data.weeklyAllocations.length === 0 && (
-            <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: 20 }}>No allocations yet. Add one above.</div>
-          )}
-          {data.weeklyAllocations.map(alloc => {
-            const asset = allAssets.find(a => a.symbol === alloc.symbol && a.type === alloc.assetType)
-            const unitsPer = asset?.price && alloc.amount > 0 ? (alloc.amount / asset.price) : null
-            return (
-              <div key={alloc.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 600 }}>{alloc.symbol}</span>
-                    <span className="badge badge-muted">{alloc.assetType}</span>
-                    {unitsPer && <span style={{ fontSize: 11, color: 'var(--muted)' }}>≈ {fmtNum(unitsPer, 5)} units/wk</span>}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <input
-                      type="number"
-                      step="10"
-                      min="0"
-                      value={alloc.amount}
-                      onChange={e => updateAlloc(alloc.id, parseInt(e.target.value) || 0)}
-                      style={{ width: 80, padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--amber)', fontWeight: 700, textAlign: 'right', fontSize: 14, fontFamily: 'Space Grotesk, sans-serif' }}
-                    />
-                    <span style={{ color: 'var(--muted)', fontSize: 13 }}>/wk</span>
-                    <button className="icon-btn danger" onClick={() => updateData('weeklyAllocations', data.weeklyAllocations.filter(a => a.id !== alloc.id))}>✕</button>
-                  </div>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={500}
-                  step={10}
-                  value={alloc.amount}
-                  onChange={e => updateAlloc(alloc.id, parseInt(e.target.value))}
-                />
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {allocModal && (
-        <AllocModal
-          assets={allAssets}
-          onClose={() => setAllocModal(false)}
-          onSave={alloc => updateData('weeklyAllocations', [...data.weeklyAllocations, alloc])}
-        />
-      )}
     </div>
   )
 }

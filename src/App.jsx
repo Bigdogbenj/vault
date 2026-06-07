@@ -65,6 +65,7 @@ export default function App() {
       if (!prev.transferLog) extras.transferLog = []
       if (!prev.poolDeployments) extras.poolDeployments = []
       if (!prev.transactions) extras.transactions = []
+      if (!prev.monthlyAllocations) extras.monthlyAllocations = []
       const hasExtras = Object.keys(extras).length > 0
 
       if (missingCrypto.length === 0 && missingStocks.length === 0 && missingEtfs.length === 0 && !etfsChanged && !goalsChanged && !hasExtras) return prev
