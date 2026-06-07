@@ -447,7 +447,7 @@ export function Portfolio({ data, updateData, prices }) {
     }
 
     // Build quarterly projection points + find milestones
-    const TARGETS = [50000, 100000, 250000]
+    const TARGETS = [50000, 100000, 250000, 500000, 1000000, 2000000, 5000000]
     const trackers = [
       { projKey: 'projCrypto', color: '#f0a500', current: cryptoTotal, found: null },
       { projKey: 'projStocks', color: '#5b9ef0', current: stockTotal,  found: null },
@@ -474,7 +474,9 @@ export function Portfolio({ data, updateData, prices }) {
           for (const target of TARGETS) {
             if (t.current >= target) continue   // already exceeded
             if (vals[t.projKey] >= target) {
-              const labelStr = `$${target >= 1_000_000 ? (target/1_000_000)+'M' : (target/1000)+'k'}`
+              const labelStr = target >= 1_000_000
+                ? `$${(target / 1_000_000).toFixed(target % 1_000_000 === 0 ? 0 : 1)}M`
+                : `$${(target / 1000)}k`
               t.found = { x: label, y: target, color: t.color, projKey: t.projKey, labelStr }
               break
             }
@@ -636,7 +638,7 @@ export function Portfolio({ data, updateData, prices }) {
         <div style={{ display: 'flex', gap: 16, marginBottom: 20, alignItems: 'flex-end' }}>
           <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
             <label className="form-label">Time horizon: <strong>{projYears} year{projYears !== 1 ? 's' : ''}</strong></label>
-            <input type="range" min="1" max="20" value={projYears} onChange={e => setProjYears(parseInt(e.target.value))}
+            <input type="range" min="1" max="50" value={projYears} onChange={e => setProjYears(parseInt(e.target.value))}
               style={{ width: '100%', accentColor: 'var(--amber)', cursor: 'pointer', marginTop: 6 }} />
           </div>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
