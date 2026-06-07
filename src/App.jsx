@@ -10,6 +10,7 @@ import { Calculator } from './pages/Calculator'
 import { Projects } from './pages/Projects'
 import { Debts } from './pages/Debts'
 import { Schedules } from './pages/Schedules'
+import { DailyPerformance } from './pages/DailyPerformance'
 import { useSupabaseData } from './hooks/useSupabaseData'
 import { usePrices } from './hooks/usePrices'
 import { DEFAULTS } from './data/defaults'
@@ -193,7 +194,8 @@ export default function App() {
         <Topbar page={page} prices={prices} syncStatus={syncStatus} />
         <Ticker data={data} prices={prices} />
         <main className="main-content">
-          {page === 'dashboard'  && <Dashboard  {...pageProps} />}
+          {page === 'dashboard'   && <Dashboard     {...pageProps} />}
+          {page === 'performance' && <DailyPerformance data={data} prices={prices} />}
           {page === 'portfolio'  && <Portfolio  {...pageProps} />}
           {page === 'accounts'   && <Accounts   {...pageProps} />}
           {page === 'budget'     && <Budget     {...pageProps} />}

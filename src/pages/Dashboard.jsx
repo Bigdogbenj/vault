@@ -5,6 +5,7 @@ import { Modal, EditValueModal } from '../components/Modal'
 import { useWeather } from '../hooks/useWeather'
 import { VaultRank } from '../components/VaultRank'
 import { useSnapshots, takeSnapshot } from '../hooks/useSnapshots'
+import { takeDailySnapshot } from '../hooks/useDailySnapshots'
 
 const QUIRKY = [
   'Welcome back, Benji',
@@ -95,7 +96,18 @@ export function Dashboard({ data, updateData, prices }) {
 
   useEffect(() => {
     if (!prices?.live) return
+    const assetBreakdown = {}
+    data.crypto.forEach(c => {
+      assetBreakdown[c.coinId] = { symbol: c.symbol, name: c.name, type: 'crypto', value: c.amount * (prices?.crypto?.[c.coinId]?.aud ?? 0) }
+    })
+    data.stocks.forEach(s => {
+      assetBreakdown[s.ticker] = { symbol: s.ticker, name: s.name, type: 'stocks', value: s.shares * (prices?.stocks?.[s.ticker]?.aud ?? 0) }
+    })
+    data.etfs.forEach(e => {
+      assetBreakdown[e.ticker] = { symbol: e.ticker, name: e.name, type: 'etfs', value: e.units * (prices?.etfs?.[e.ticker]?.aud ?? 0) }
+    })
     takeSnapshot(totalBalance, cryptoValue, stockValue, etfValue)
+    takeDailySnapshot(totalBalance, cryptoValue, stockValue, etfValue, assetBreakdown)
   }, [prices?.live]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const trend = useMemo(() => {
