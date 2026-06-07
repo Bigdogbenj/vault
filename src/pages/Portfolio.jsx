@@ -392,7 +392,7 @@ export function Portfolio({ data, updateData, prices }) {
   const [editVal, setEditVal] = useState(null)
   const [histRange, setHistRange] = useState('1M')
   const [projYears, setProjYears] = useState(10)
-  const [projRate, setProjRate] = useState(8)
+  const [projRate, setProjRate] = useState({ crypto: 20, etfs: 8, stocks: 12 })
   const [projMonthly, setProjMonthly] = useState({ crypto: 200, etfs: 500, stocks: 300 })
 
   const snapshots = useSnapshots()
@@ -426,7 +426,9 @@ export function Portfolio({ data, updateData, prices }) {
 
   // Growth Projection: history + forward compound projection
   const { projChartData, projMilestones, projFinalValues } = useMemo(() => {
-    const monthlyRate = Math.pow(1 + projRate / 100, 1 / 12) - 1
+    const cryptoMonthlyRate = Math.pow(1 + projRate.crypto / 100, 1 / 12) - 1
+    const etfMonthlyRate    = Math.pow(1 + projRate.etfs   / 100, 1 / 12) - 1
+    const stockMonthlyRate  = Math.pow(1 + projRate.stocks / 100, 1 / 12) - 1
     const now = new Date()
 
     // Last 12 months of history for the combined chart
@@ -457,9 +459,9 @@ export function Portfolio({ data, updateData, prices }) {
     const proj = []
 
     for (let m = 1; m <= projYears * 12; m++) {
-      c = c * (1 + monthlyRate) + projMonthly.crypto
-      s = s * (1 + monthlyRate) + projMonthly.stocks
-      e = e * (1 + monthlyRate) + projMonthly.etfs
+      c = c * (1 + cryptoMonthlyRate) + projMonthly.crypto
+      s = s * (1 + stockMonthlyRate)  + projMonthly.stocks
+      e = e * (1 + etfMonthlyRate)    + projMonthly.etfs
 
       if (m % 3 === 0) {
         const d = new Date(now)
@@ -490,7 +492,7 @@ export function Portfolio({ data, updateData, prices }) {
       projMilestones: trackers.map(t => t.found).filter(Boolean),
       projFinalValues: { crypto: Math.round(c), stocks: Math.round(s), etfs: Math.round(e) },
     }
-  }, [snapshots, cryptoTotal, stockTotal, etfTotal, projRate, projYears, projMonthly]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [snapshots, cryptoTotal, stockTotal, etfTotal, projRate.crypto, projRate.etfs, projRate.stocks, projYears, projMonthly]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveTransaction = (tx) => {
     if (tx.assetType === 'crypto') {
@@ -642,9 +644,19 @@ export function Portfolio({ data, updateData, prices }) {
               style={{ width: '100%', accentColor: 'var(--amber)', cursor: 'pointer', marginTop: 6 }} />
           </div>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-            <label className="form-label">Annual growth rate (%)</label>
-            <input className="form-input" type="number" min="0" max="50" step="0.5" value={projRate}
-              onChange={e => setProjRate(parseFloat(e.target.value) || 0)} />
+            <label className="form-label">Crypto Annual Growth (%)</label>
+            <input className="form-input" type="number" min="0" max="200" step="0.5" value={projRate.crypto}
+              onChange={e => setProjRate(r => ({ ...r, crypto: parseFloat(e.target.value) || 0 }))} />
+          </div>
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">ETFs Annual Growth (%)</label>
+            <input className="form-input" type="number" min="0" max="100" step="0.5" value={projRate.etfs}
+              onChange={e => setProjRate(r => ({ ...r, etfs: parseFloat(e.target.value) || 0 }))} />
+          </div>
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Stocks Annual Growth (%)</label>
+            <input className="form-input" type="number" min="0" max="100" step="0.5" value={projRate.stocks}
+              onChange={e => setProjRate(r => ({ ...r, stocks: parseFloat(e.target.value) || 0 }))} />
           </div>
         </div>
         <ResponsiveContainer width="100%" height={260}>
