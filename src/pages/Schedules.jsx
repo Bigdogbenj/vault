@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { fmt, genId, getNextFireTime, toMonthly } from '../utils'
+import { fmt, fmtNum, genId, getNextFireTime, toMonthly } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
 import { DEFAULTS } from '../data/defaults'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
@@ -349,20 +349,52 @@ function PoolCard({ poolId, pool, onDeploy, onEditContrib }) {
 
 // ─── Deploy Modal ─────────────────────────────────────────────────────────────
 
-function DeployModal({ poolId, pool, data, onClose, onDeploy }) {
+function DeployModal({ poolId, pool, data, prices, onClose, onDeploy }) {
   const cfg = POOL_CONFIG[poolId]
-  const assets = poolId === 'crypto' ? data.crypto.map(c => c.symbol)
-               : poolId === 'stocks' ? data.stocks.map(s => s.ticker)
-               : data.etfs.map(e => e.ticker)
 
-  const [amount, setAmount] = useState(String(pool.available || 0))
-  const [asset, setAsset] = useState(assets[0] ?? '')
+  const getLivePrice = (assetValue) => {
+    if (!prices || !assetValue) return 0
+    if (poolId === 'crypto') {
+      const coin = data.crypto.find(c => c.symbol === assetValue)
+      return coin ? (prices.crypto?.[coin.coinId]?.aud ?? 0) : 0
+    }
+    if (poolId === 'stocks') return prices.stocks?.[assetValue]?.aud ?? 0
+    return prices.etfs?.[assetValue]?.aud ?? 0
+  }
+
+  const assetList = poolId === 'crypto' ? data.crypto.map(c => c.symbol)
+                  : poolId === 'stocks' ? data.stocks.map(s => s.ticker)
+                  : data.etfs.map(e => e.ticker)
+
+  const initialAsset = assetList[0] ?? ''
+  const [asset, setAsset] = useState(initialAsset)
+  const [units, setUnits] = useState('')
+  const [pricePerUnit, setPricePerUnit] = useState(() => {
+    const p = getLivePrice(initialAsset)
+    return p ? String(p) : ''
+  })
   const [date, setDate] = useState(TODAY)
 
+  const handleAssetChange = (val) => {
+    setAsset(val)
+    const livePrice = getLivePrice(val)
+    if (livePrice) setPricePerUnit(String(livePrice))
+  }
+
+  const unitsNum = parseFloat(units) || 0
+  const priceNum = parseFloat(pricePerUnit) || 0
+  const totalCost = unitsNum * priceNum
+
   const handleConfirm = () => {
-    const amt = parseFloat(amount) || 0
-    if (amt <= 0 || !asset) return
-    onDeploy({ poolId, amount: amt, asset, deployedAt: new Date(date + 'T12:00:00').toISOString() })
+    if (unitsNum <= 0 || priceNum <= 0 || !asset) return
+    onDeploy({
+      poolId,
+      asset,
+      units: unitsNum,
+      pricePerUnit: priceNum,
+      amount: totalCost,
+      deployedAt: new Date(date + 'T12:00:00').toISOString(),
+    })
     onClose()
   }
 
@@ -375,26 +407,37 @@ function DeployModal({ poolId, pool, data, onClose, onDeploy }) {
         </div>
       </div>
       <div className="form-group">
-        <label className="form-label">Amount</label>
-        <input className="form-input" type="number" step="any" min="0" max={pool.available} value={amount} onChange={e => setAmount(e.target.value)} />
-      </div>
-      <div className="form-group">
         <label className="form-label">Asset</label>
-        <select className="form-select" value={asset} onChange={e => setAsset(e.target.value)}>
-          {assets.length === 0 ? <option value="">No assets in portfolio</option> : assets.map(a => <option key={a} value={a}>{a}</option>)}
+        <select className="form-select" value={asset} onChange={e => handleAssetChange(e.target.value)}>
+          {assetList.length === 0
+            ? <option value="">No assets in portfolio</option>
+            : assetList.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Number of Units</label>
+          <input className="form-input" type="number" step="any" min="0"
+            value={units} onChange={e => setUnits(e.target.value)} placeholder="0.00" />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Price per Unit (AUD)</label>
+          <input className="form-input" type="number" step="any" min="0"
+            value={pricePerUnit} onChange={e => setPricePerUnit(e.target.value)} placeholder="0.00" />
+        </div>
       </div>
       <div className="form-group">
         <label className="form-label">Date</label>
         <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
       </div>
-      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
-        This records the deployment but does not update portfolio holdings — add the transaction manually.
+      <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>Total Cost</span>
+        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: cfg.color }}>{fmt(totalCost)}</span>
       </div>
       <div className="modal-actions">
         <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
         <button className="btn btn-primary" onClick={handleConfirm}
-          style={{ background: cfg.color, opacity: parseFloat(amount) > 0 ? 1 : 0.5 }}>
+          style={{ background: cfg.color, opacity: totalCost > 0 ? 1 : 0.5 }}>
           Confirm Deploy
         </button>
       </div>
@@ -404,7 +447,7 @@ function DeployModal({ poolId, pool, data, onClose, onDeploy }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function Schedules({ data, updateData }) {
+export function Schedules({ data, updateData, prices }) {
   const [tab, setTab] = useState('schedules')
   const [modal, setModal] = useState(null)
   const [deployModal, setDeployModal] = useState(null)
@@ -427,8 +470,9 @@ export function Schedules({ data, updateData }) {
   const deleteSchedule = (id) => updateData('schedules', schedules.filter(s => s.id !== id))
   const toggleSchedule = (id) => updateData('schedules', schedules.map(s => s.id === id ? { ...s, active: !s.active } : s))
 
-  const handleDeploy = ({ poolId, amount, asset, deployedAt }) => {
-    const newDeployment = { id: genId(), poolId, amount, asset, deployedAt }
+  const handleDeploy = ({ poolId, asset, units, pricePerUnit, amount, deployedAt }) => {
+    const newDeployment = { id: genId(), poolId, asset, units, pricePerUnit, amount, deployedAt }
+
     updateData('pools', {
       ...pools,
       [poolId]: {
@@ -439,6 +483,33 @@ export function Schedules({ data, updateData }) {
         lastDeployedAmount: amount,
       },
     })
+
+    if (poolId === 'crypto') {
+      updateData('crypto', data.crypto.map(c => {
+        if (c.symbol !== asset) return c
+        const oldQty = c.amount || 0
+        const newQty = oldQty + units
+        const avgCost = newQty > 0 ? (oldQty * (c.avgCost || 0) + units * pricePerUnit) / newQty : pricePerUnit
+        return { ...c, amount: newQty, avgCost }
+      }))
+    } else if (poolId === 'stocks') {
+      updateData('stocks', data.stocks.map(s => {
+        if (s.ticker !== asset) return s
+        const oldShares = s.shares || 0
+        const newShares = oldShares + units
+        const avgCost = newShares > 0 ? (oldShares * (s.avgCost || 0) + units * pricePerUnit) / newShares : pricePerUnit
+        return { ...s, shares: newShares, avgCost }
+      }))
+    } else {
+      updateData('etfs', data.etfs.map(e => {
+        if (e.ticker !== asset) return e
+        const oldUnits = e.units || 0
+        const newUnits = oldUnits + units
+        const avgCost = newUnits > 0 ? (oldUnits * (e.avgCost || 0) + units * pricePerUnit) / newUnits : pricePerUnit
+        return { ...e, units: newUnits, avgCost }
+      }))
+    }
+
     updateData('poolDeployments', [newDeployment, ...poolDeployments])
   }
 
@@ -727,7 +798,12 @@ export function Schedules({ data, updateData }) {
                 <table>
                   <thead>
                     <tr>
-                      <th>Date</th><th>Pool</th><th>Asset</th><th style={{ textAlign: 'right' }}>Amount</th>
+                      <th>Date</th>
+                      <th>Pool</th>
+                      <th>Asset</th>
+                      <th style={{ textAlign: 'right' }}>Units</th>
+                      <th style={{ textAlign: 'right' }}>Price/Unit</th>
+                      <th style={{ textAlign: 'right' }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -742,6 +818,12 @@ export function Schedules({ data, updateData }) {
                           </span>
                         </td>
                         <td style={{ fontWeight: 600 }}>{d.asset}</td>
+                        <td style={{ textAlign: 'right', color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>
+                          {d.units != null ? fmtNum(d.units, 6) : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right', color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>
+                          {d.pricePerUnit != null ? fmt(d.pricePerUnit) : '—'}
+                        </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{fmt(d.amount)}</td>
                       </tr>
                     ))}
@@ -758,7 +840,7 @@ export function Schedules({ data, updateData }) {
         <ScheduleModal item={modal.item} accounts={accounts} onClose={() => setModal(null)} onSave={saveSchedule} />
       )}
       {deployModal && (
-        <DeployModal poolId={deployModal} pool={pools[deployModal]} data={data} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
+        <DeployModal poolId={deployModal} pool={pools[deployModal]} data={data} prices={prices} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
       )}
       {editContrib && (
         <EditValueModal
