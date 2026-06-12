@@ -31,10 +31,13 @@ export function DailyPerformance({ data, prices }) {
 
   const livePricesLoaded = !!prices?.live
 
+  // Computed outside the memo so midnight transitions take effect on the next
+  // price-driven re-render rather than requiring a full remount.
+  const today = new Date().toISOString().slice(0, 10)
+
   const yesterdaySnap = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10)
     return snapshots.find(s => s.date < today) ?? null
-  }, [snapshots])
+  }, [snapshots, today])
 
   const currentTotal = useMemo(
     () => data.accounts.reduce((s, a) => s + resolvedAccountBalance(a, data, prices), 0),
