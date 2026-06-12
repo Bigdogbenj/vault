@@ -358,8 +358,11 @@ function DeployModal({ poolId, pool, data, prices, onClose, onDeploy }) {
       const coin = data.crypto.find(c => c.symbol === assetValue)
       return coin ? (prices.crypto?.[coin.coinId]?.aud ?? 0) : 0
     }
-    if (poolId === 'stocks') return prices.stocks?.[assetValue]?.aud ?? 0
-    return prices.etfs?.[assetValue]?.aud ?? 0
+    if (poolId === 'stocks') return prices.stocks?.[assetValue]?.usd ?? 0
+    const etf = data.etfs.find(e => e.ticker === assetValue)
+    return etf?.market === 'US'
+      ? (prices.etfs?.[assetValue]?.usd ?? 0)
+      : (prices.etfs?.[assetValue]?.aud ?? 0)
   }
 
   const assetList = poolId === 'crypto' ? data.crypto.map(c => c.symbol)
@@ -384,6 +387,10 @@ function DeployModal({ poolId, pool, data, prices, onClose, onDeploy }) {
   const unitsNum = parseFloat(units) || 0
   const priceNum = parseFloat(pricePerUnit) || 0
   const totalCost = unitsNum * priceNum
+
+  const isUsdAsset = poolId === 'stocks' ||
+    (poolId === 'etfs' && data.etfs.find(e => e.ticker === asset)?.market === 'US')
+  const priceLabel = isUsdAsset ? 'Price per Unit (USD)' : 'Price per Unit (AUD)'
 
   const handleConfirm = () => {
     if (unitsNum <= 0 || priceNum <= 0 || !asset) return
@@ -421,7 +428,7 @@ function DeployModal({ poolId, pool, data, prices, onClose, onDeploy }) {
             value={units} onChange={e => setUnits(e.target.value)} placeholder="0.00" />
         </div>
         <div className="form-group">
-          <label className="form-label">Price per Unit (AUD)</label>
+          <label className="form-label">{priceLabel}</label>
           <input className="form-input" type="number" step="any" min="0"
             value={pricePerUnit} onChange={e => setPricePerUnit(e.target.value)} placeholder="0.00" />
         </div>
