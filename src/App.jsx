@@ -123,23 +123,25 @@ export default function App() {
           ? `${s.toPool.charAt(0).toUpperCase() + s.toPool.slice(1)} Pool`
           : (prev.accounts.find(a => a.id === s.toAccount)?.name ?? 'Unknown')
 
+        console.log('Schedule fired:', s.name, 'from:', fromLabel, 'amount:', s.amount)
+
         if (s.type === 'income' && s.toAccount) {
           const i = accounts.findIndex(a => a.id === s.toAccount)
-          if (i >= 0) accounts[i].balance = (accounts[i].balance || 0) + s.amount
+          if (i >= 0) accounts[i].balance = (Number(accounts[i].balance) || 0) + s.amount
         } else if (s.type === 'transfer') {
           if (s.fromAccount) {
             const i = accounts.findIndex(a => a.id === s.fromAccount)
-            if (i >= 0) accounts[i].balance = (accounts[i].balance || 0) - s.amount
+            if (i >= 0) accounts[i].balance = (Number(accounts[i].balance) || 0) - s.amount
           }
           if (s.toAccount) {
             const i = accounts.findIndex(a => a.id === s.toAccount)
-            if (i >= 0) accounts[i].balance = (accounts[i].balance || 0) + s.amount
-          } else if (s.toPool && pools[s.toPool] != null) {
-            pools[s.toPool].available = (pools[s.toPool].available || 0) + s.amount
+            if (i >= 0) accounts[i].balance = (Number(accounts[i].balance) || 0) + s.amount
+          } else if (s.toPool && pools[s.toPool]) {
+            pools[s.toPool].available = (Number(pools[s.toPool].available) || 0) + s.amount
           }
         } else if (s.type === 'expense' && s.fromAccount) {
           const i = accounts.findIndex(a => a.id === s.fromAccount)
-          if (i >= 0) accounts[i].balance = (accounts[i].balance || 0) - s.amount
+          if (i >= 0) accounts[i].balance = (Number(accounts[i].balance) || 0) - s.amount
         }
 
         newLogs.push({
