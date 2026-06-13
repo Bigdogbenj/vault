@@ -593,7 +593,7 @@ export function Portfolio({ data, updateData, prices }) {
           <BarChart data={barData} layout="vertical">
             <XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
             <YAxis type="category" dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 12 }} tickLine={false} axisLine={false} width={50} />
-            <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={v => [fmt(v)]} />
+            <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} labelStyle={{ color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} formatter={v => [fmt(v)]} />
             <Bar dataKey="value" radius={4}>
               {barData.map((entry, i) => (
                 <Cell key={i} fill={['#5b9ef0', '#4caf7d', '#f0a500'][i]} />
