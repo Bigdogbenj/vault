@@ -103,7 +103,7 @@ const OVERALL_RANKS = [
   { grade: 'S', title: 'The Vault',     minAvg: 5, minNW: 300000, requireAllFive: true },
 ]
 
-const RANK_MESSAGES = {
+export const RANK_MESSAGES = {
   F: "Every legend starts somewhere. Make the first move.",
   D: "The foundation is forming. Keep stacking.",
   C: "Real momentum building. Most people never get here.",
@@ -538,8 +538,9 @@ function TrackCard({ track, value, level, onClick }) {
   )
 }
 
-export function VaultRank({ data, prices, netWorth }) {
-  const [selectedTrack, setSelectedTrack] = useState(null)
+const GRADE_COLORS = { F: '#6b7280', D: '#e05b5b', C: '#f0a500', B: '#5b9ef0', A: '#4caf7d', S: '#a87ef0' }
+
+export function useVaultRankInfo(data, prices, netWorth) {
   const usdToAud = prices?.usdToAud ?? 1.55
   const debts = data.debts ?? []
 
@@ -562,10 +563,20 @@ export function VaultRank({ data, prices, netWorth }) {
     data.accounts.filter(a => a.type === 'Super').reduce((s, a) => s + (a.balance ?? 0), 0),
     [data.accounts]
   )
+  const investedCostBasis = useMemo(() => {
+    const crypto = data.crypto.reduce((s, c) => s + c.amount * c.avgCost, 0)
+    const stocks = data.stocks.reduce((s, st) => s + st.shares * st.avgCost * usdToAud, 0)
+    const etfs = data.etfs.reduce((s, e) => {
+      const cost = e.market === 'US' ? e.avgCost * usdToAud : e.avgCost
+      return s + e.units * cost
+    }, 0)
+    return crypto + stocks + etfs
+  }, [data.crypto, data.stocks, data.etfs, usdToAud])
 
   const totalIncome = data.budget.income.reduce((s, i) => s + (i.amount ?? 0), 0)
   const totalExpenses = data.budget.expenses.reduce((s, e) => s + (e.amount ?? 0), 0)
-  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0
+  const savings = totalIncome - totalExpenses
+  const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0
   const completedGoals = data.goals.filter(g => g.current >= g.target).length
 
   const debtTotalOrig = debts.reduce((s, d) => s + (d.originalAmount || 0), 0)
@@ -578,14 +589,12 @@ export function VaultRank({ data, prices, netWorth }) {
     planner: null, builder: superValue, debt: debtValue,
   }
 
-  // Two-pass: non-planner first, then planner uses those results
   const nonPlannerLevels = {}
   TRACKS.forEach(t => {
     if (t.id !== 'planner') {
       nonPlannerLevels[t.id] = computeTrackLevel(t, trackValues[t.id], data, savingsRate, completedGoals, netWorth, debts, null)
     }
   })
-  // For Master Planner: debt -1 (no debt) counts as satisfied
   const otherLevelsForPlanner = TRACKS
     .filter(t => t.id !== 'planner')
     .map(t => nonPlannerLevels[t.id] < 0 ? 5 : nonPlannerLevels[t.id])
@@ -616,7 +625,6 @@ export function VaultRank({ data, prices, netWorth }) {
 
   const rank = OVERALL_RANKS[rankIdx]
   const nextRank = OVERALL_RANKS[rankIdx + 1] ?? null
-  const GRADE_COLORS = { F: '#6b7280', D: '#e05b5b', C: '#f0a500', B: '#5b9ef0', A: '#4caf7d', S: '#a87ef0' }
   const gradeColor = GRADE_COLORS[rank.grade]
 
   let progressToNext = null
@@ -626,49 +634,27 @@ export function VaultRank({ data, prices, netWorth }) {
     progressToNext = [nwNeeded, lvlNeeded].filter(Boolean).join(' + ') || 'Almost there'
   }
 
+  const xpPct = nextRank
+    ? Math.min(100, Math.max(0, ((avgLevel - rank.minAvg) / Math.max(nextRank.minAvg - rank.minAvg, 0.1)) * 100))
+    : 100
+
+  return {
+    rank, gradeColor, avgLevel, nextRank, progressToNext, xpPct,
+    saverValue, investorValue, cryptoValue, savingsRate, savings, totalExpenses,
+    debtTotalRemain, investedCostBasis, trackValues, trackLevels, usdToAud, debts, completedGoals,
+  }
+}
+
+export function VaultRank({ data, prices, netWorth }) {
+  const [selectedTrack, setSelectedTrack] = useState(null)
+  const {
+    trackValues, trackLevels, usdToAud, debts, savingsRate, completedGoals,
+  } = useVaultRankInfo(data, prices, netWorth)
+
   const selectedIdx = selectedTrack != null ? TRACKS.findIndex(t => t.id === selectedTrack) : -1
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Hero rank card */}
-      <div className="card" style={{
-        background: 'linear-gradient(135deg, #16181f 0%, #12141a 100%)',
-        border: `1px solid ${gradeColor}30`,
-        padding: '24px 28px', position: 'relative', overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', right: 20, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 110, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900,
-          color: `${gradeColor}12`, lineHeight: 1, userSelect: 'none',
-        }}>{rank.grade}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: 14,
-            background: `${gradeColor}18`, border: `2px solid ${gradeColor}40`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900,
-            fontSize: 38, color: gradeColor, flexShrink: 0,
-          }}>{rank.grade}</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--muted)', marginBottom: 4 }}>Vault Rank</div>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 26, fontWeight: 800, color: gradeColor, lineHeight: 1.1 }}>{rank.title}</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>{RANK_MESSAGES[rank.grade]}</div>
-            {progressToNext && nextRank && (
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
-                Next rank <span style={{ color: GRADE_COLORS[nextRank.grade], fontWeight: 700 }}>{nextRank.grade} — {nextRank.title}</span>
-                {' '}· needs {progressToNext}
-              </div>
-            )}
-          </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Avg Level</div>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 28, fontWeight: 700, color: gradeColor }}>{avgLevel.toFixed(1)}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)' }}>out of 6</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Track cards grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
         {TRACKS.map((track, i) => (
           <TrackCard
@@ -681,7 +667,6 @@ export function VaultRank({ data, prices, netWorth }) {
         ))}
       </div>
 
-      {/* Detail modal */}
       {selectedTrack && selectedIdx >= 0 && (
         <TrackDetailModal
           track={TRACKS[selectedIdx]}
