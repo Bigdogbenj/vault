@@ -7,28 +7,12 @@ const RANK_COLORS = {
   B: '#34d399', A: '#fb923c', S: '#fbbf24',
 }
 
-const NODES = {
-  F: { x: 90,  y: 580 },
-  D: { x: 250, y: 480 },
-  C: { x: 90,  y: 380 },
-  B: { x: 250, y: 280 },
-  A: { x: 90,  y: 180 },
-  S: { x: 250, y: 80  },
-}
-
-// Control points for each quadratic bezier segment
-const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 170, cy: 530, color: '#888'    },
-  { from: 'D', to: 'C', cx: 170, cy: 430, color: '#c084fc' },
-  { from: 'C', to: 'B', cx: 170, cy: 330, color: '#38bdf8' },
-  { from: 'B', to: 'A', cx: 170, cy: 230, color: '#34d399' },
-  { from: 'A', to: 'S', cx: 170, cy: 130, color: '#fb923c' },
-]
+const PRESTIGE_EMBLEMS = { F: '🗑️', D: '🪙', C: '🏠', B: '🏢', A: '🏆', S: '🏦' }
 
 const RANK_DATA = {
-  F: { color: '#888', name: 'Broke Boy', sub: 'The starting line. Pure chaos. Survive.',
+  F: { name: 'Broke Boy', sub: 'Every legend starts somewhere. Make the first move.',
     tracks: [
-      { n: 'The Saver',    v: 'Bank balance: $0+',         p: 5   },
+      { n: 'The Saver',    v: 'Bank balance: $0+',        p: 5   },
       { n: 'The Investor', v: 'No positions yet',          p: 0   },
       { n: 'Crypto Degen', v: 'Not yet initiated',         p: 0   },
       { n: 'The Planner',  v: 'Using Vault',               p: 100 },
@@ -40,7 +24,7 @@ const RANK_DATA = {
       { icon: '🍜', title: 'Ramen Budget',     desc: 'Set a food budget under $200/mo and stick to it.' },
       { icon: '💸', title: 'First $50 Saved',  desc: "Put $50 aside and don't touch it for 30 days." },
     ] },
-  D: { color: '#c084fc', name: 'Scraping By', sub: 'Foundations forming. Keep the lights on.',
+  D: { name: 'Scraping By', sub: 'Foundations forming. Keep the lights on.',
     tracks: [
       { n: 'The Saver',    v: 'Bank balance: $5,000+',       p: 30 },
       { n: 'The Investor', v: 'Stocks/ETFs: $2,500+',        p: 25 },
@@ -54,7 +38,7 @@ const RANK_DATA = {
       { icon: '🔄', title: 'Round-Up Saver',  desc: 'Round up every purchase and bank the difference.' },
       { icon: '📞', title: 'Bill Negotiator', desc: 'Call one provider and negotiate a lower rate.' },
     ] },
-  C: { color: '#38bdf8', name: 'Getting There', sub: 'Momentum is building. This is real now.',
+  C: { name: 'Getting There', sub: 'Momentum is building. This is real now.',
     tracks: [
       { n: 'The Saver',    v: 'Bank balance: $10,000+',               p: 55 },
       { n: 'The Investor', v: 'Stocks/ETFs: $7,500+',                 p: 50 },
@@ -68,7 +52,7 @@ const RANK_DATA = {
       { icon: '🎯', title: 'Budget Sniper',    desc: 'Hit your monthly budget exactly (±2%) for 3 months.' },
       { icon: '🤝', title: 'Referral Bonus',   desc: 'Get a friend to open an investment account.' },
     ] },
-  B: { color: '#34d399', name: 'Wealth Aware', sub: 'You know the game. Now compound it hard.',
+  B: { name: 'Wealth Aware', sub: 'You know the game. Now compound it hard.',
     tracks: [
       { n: 'The Saver',    v: 'Bank balance: $20,000+',       p: 72 },
       { n: 'The Investor', v: 'Stocks/ETFs: $15,000+',        p: 68 },
@@ -78,87 +62,120 @@ const RANK_DATA = {
       { n: 'Debt Slayer',  v: '50% of total debt paid',       p: 55 },
     ],
     bonus: [
-      { icon: '🏠', title: 'Asset Owner',   desc: 'Own at least one real asset (property, vehicle, business).' },
+      { icon: '🏠', title: 'Asset Owner',   desc: 'Own at least one real asset.' },
       { icon: '🧾', title: 'Tax Optimizer', desc: 'Lodge a tax return and claim every legal deduction.' },
       { icon: '🤖', title: 'Auto Investor', desc: 'Set up an automatic recurring investment transfer.' },
     ] },
-  A: { color: '#fb923c', name: 'Wealth Builder', sub: 'Serious numbers. The vault is in sight.',
+  A: { name: 'Wealth Builder', sub: 'Serious numbers. The vault is in sight.',
     tracks: [
-      { n: 'The Saver',    v: 'Bank balance: $35,000+',                p: 85 },
-      { n: 'The Investor', v: 'Stocks/ETFs: $35,000+',                 p: 82 },
-      { n: 'Crypto Degen', v: 'Crypto: $30,000+',                      p: 80 },
-      { n: 'The Planner',  v: '3 goals completed + 20%+ savings rate', p: 85 },
-      { n: 'The Builder',  v: 'Super: $150,000+',                      p: 78 },
-      { n: 'Debt Slayer',  v: '75% of total debt paid',                p: 72 },
+      { n: 'The Saver',    v: 'Bank balance: $35,000+',          p: 85 },
+      { n: 'The Investor', v: 'Stocks/ETFs: $35,000+',           p: 82 },
+      { n: 'Crypto Degen', v: 'Crypto: $30,000+',                p: 80 },
+      { n: 'The Planner',  v: '3 goals + 20%+ savings rate',     p: 85 },
+      { n: 'The Builder',  v: 'Super: $150,000+',                p: 78 },
+      { n: 'Debt Slayer',  v: '75% of total debt paid',          p: 72 },
     ],
     bonus: [
-      { icon: '💎', title: 'Diamond Hands',  desc: 'Hold BTC or ETH through a 40%+ drawdown without selling.' },
-      { icon: '🌍', title: 'Diversified',    desc: 'Hold assets across 4+ different asset classes simultaneously.' },
-      { icon: '📊', title: '100K Portfolio', desc: 'Hit $100,000 total invested (crypto + stocks + ETFs).' },
+      { icon: '💎', title: 'Diamond Hands',  desc: 'Hold BTC or ETH through a 40%+ drawdown.' },
+      { icon: '🌍', title: 'Diversified',    desc: 'Hold assets across 4+ different asset classes.' },
+      { icon: '📊', title: '100K Portfolio', desc: 'Hit $100,000 total invested.' },
     ] },
-  S: { color: '#fbbf24', name: 'The Vault', sub: '$300,000+ net worth. All tracks maxed. Legendary.',
+  S: { name: 'The Vault', sub: '$300,000+ net worth. All tracks maxed. Legendary.',
     tracks: [
-      { n: 'The Saver',    v: 'Bank balance: $50,000+',      p: 100 },
-      { n: 'The Investor', v: 'Stocks/ETFs: $75,000+',       p: 100 },
-      { n: 'Crypto Degen', v: 'Crypto: $75,000+',            p: 100 },
-      { n: 'The Planner',  v: 'Master Planner: savings 30%+',p: 100 },
-      { n: 'The Builder',  v: 'Super: $250,000+',            p: 100 },
-      { n: 'Debt Slayer',  v: 'Completely debt free 🎉',     p: 100 },
+      { n: 'The Saver',    v: 'Bank balance: $50,000+',       p: 100 },
+      { n: 'The Investor', v: 'Stocks/ETFs: $75,000+',        p: 100 },
+      { n: 'Crypto Degen', v: 'Crypto: $75,000+',             p: 100 },
+      { n: 'The Planner',  v: 'Master Planner: 30%+ savings', p: 100 },
+      { n: 'The Builder',  v: 'Super: $250,000+',             p: 100 },
+      { n: 'Debt Slayer',  v: 'Completely debt free 🎉',      p: 100 },
     ],
     bonus: [
       { icon: '👑', title: 'PLATINUM: Unlock The Vault', desc: 'Hit $1,000,000 liquid net worth.' },
       { icon: '🏦', title: 'The 1%',                    desc: 'Net worth exceeds 99% of Australians your age.' },
-      { icon: '🚀', title: 'FIRE Achieved',             desc: 'Passive income covers 100% of your expenses.' },
+      { icon: '🚀', title: 'FIRE Achieved',             desc: 'Passive income covers 100% of expenses.' },
     ] },
 }
 
 const RANK_REQ_SHORT = {
   F: 'Starting rank',
   D: '$5K+ bank · Positive NW',
-  C: '$10K+ bank · Goal done',
-  B: '$20K+ bank · $30K NW',
-  A: '$35K+ bank · $80K NW',
-  S: '$300K NW · All tracks 5+',
+  C: '$10K+ · Goal done',
+  B: '$20K+ · $30K NW',
+  A: '$35K+ · $80K NW',
+  S: '$300K NW · All 5+',
 }
 
-function quadBezier(t, x0, y0, cx, cy, x2, y2) {
-  const mt = 1 - t
-  return {
-    x: mt * mt * x0 + 2 * mt * t * cx + t * t * x2,
-    y: mt * mt * y0 + 2 * mt * t * cy + t * t * y2,
-  }
+const NODES = {
+  F: { x: 50,  y: 520 },
+  D: { x: 150, y: 430 },
+  C: { x: 50,  y: 340 },
+  B: { x: 150, y: 250 },
+  A: { x: 50,  y: 160 },
+  S: { x: 150, y: 70  },
 }
 
-function segPath(seg) {
-  const p0 = NODES[seg.from]
-  const p2 = NODES[seg.to]
-  return `M${p0.x},${p0.y} Q${seg.cx},${seg.cy} ${p2.x},${p2.y}`
+const SEGMENTS = [
+  { from: 'F', to: 'D', cx: 100, cy: 475, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 100, cy: 385, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 100, cy: 295, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 100, cy: 205, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 100, cy: 115, color: RANK_COLORS.S },
+]
+
+const fmt = (n) => {
+  if (n == null || isNaN(n)) return '—'
+  const abs = Math.abs(n)
+  const str = abs >= 1000 ? `$${(abs / 1000).toFixed(1)}k` : `$${Math.round(abs)}`
+  return n < 0 ? `-${str}` : str
 }
 
-export function VaultRankMap({ currentRank, rankProgress, tracks }) {
+function Tile({ label, value, sub, color }) {
+  return (
+    <div style={{
+      background: `${color}0f`,
+      border: `1px solid ${color}2e`,
+      borderRadius: 10, padding: '9px 11px',
+    }}>
+      <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color, opacity: 0.65, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1.2, marginBottom: 2 }}>{value}</div>
+      <div style={{ fontSize: 8, color, opacity: 0.5 }}>{sub}</div>
+    </div>
+  )
+}
+
+export function VaultRankMap({
+  currentRank, rankProgress, tracks,
+  netWorth, invested, debt, savingsRate, daysActive,
+  liquidityMonths, attackPerMonth, defencePct, yieldPct,
+  powerTotal, prestigeScore, debtRatio,
+}) {
   const [selectedRank, setSelectedRank] = useState(currentRank)
 
   const currentIdx = RANK_ORDER.indexOf(currentRank)
+  const nextRankGrade = RANK_ORDER[currentIdx + 1]
+  const rankColor = RANK_COLORS[currentRank]
+  const rd = RANK_DATA[currentRank]
+  const prestigeLevel = currentIdx + 1
 
-  // Compute segment progress for each segment
-  function getSegmentProgress(seg) {
+  function getSegProg(seg) {
     const toIdx = RANK_ORDER.indexOf(seg.to)
     const fromIdx = RANK_ORDER.indexOf(seg.from)
-    if (toIdx <= currentIdx) return 1          // completed
-    if (fromIdx === currentIdx) return rankProgress  // active
-    return 0                                        // future
+    if (toIdx <= currentIdx) return 1
+    if (fromIdx === currentIdx) return rankProgress
+    return 0
   }
 
-  // Current position dot on active segment
   const activeSeg = SEGMENTS.find(s => s.from === currentRank)
   let dotPos = null
-  if (activeSeg) {
+  if (activeSeg && rankProgress > 0) {
     const p0 = NODES[activeSeg.from]
     const p2 = NODES[activeSeg.to]
-    dotPos = quadBezier(rankProgress, p0.x, p0.y, activeSeg.cx, activeSeg.cy, p2.x, p2.y)
+    dotPos = {
+      x: p0.x + (p2.x - p0.x) * rankProgress,
+      y: p0.y + (p2.y - p0.y) * rankProgress,
+    }
   }
 
-  // Node state
   function nodeState(grade) {
     const idx = RANK_ORDER.indexOf(grade)
     if (idx < currentIdx) return 'done'
@@ -167,41 +184,17 @@ export function VaultRankMap({ currentRank, rankProgress, tracks }) {
     return 'locked'
   }
 
-  // Detail card data
-  const selIdx = RANK_ORDER.indexOf(selectedRank)
   const selState = nodeState(selectedRank)
-  const selRD = RANK_DATA[selectedRank]
   const selColor = RANK_COLORS[selectedRank]
-  const nextRankGrade = RANK_ORDER[currentIdx + 1]
+  const selRD = RANK_DATA[selectedRank]
 
-  // Merge live tracks into selected rank's track data
   const mergedTracks = selRD.tracks.map((t, i) => {
-    if (selectedRank === currentRank && tracks?.[i] != null) {
+    if (selectedRank === currentRank && tracks?.[i] != null)
       return { ...t, p: Math.min(100, Math.max(0, tracks[i].pct)) }
-    }
     if (selState === 'done') return { ...t, p: 100 }
     return t
   })
-  const allTracksDone = mergedTracks.every(t => t.p >= 100)
-
-  // Label text helpers
-  function labelLine2(grade) {
-    const state = nodeState(grade)
-    if (state === 'current') {
-      const pct = Math.round(rankProgress * 100)
-      const next = RANK_ORDER[currentIdx + 1]
-      return next ? `You are here · ${pct}% to ${next}` : 'Maximum rank achieved'
-    }
-    if (state === 'next') return 'Next target'
-    return RANK_REQ_SHORT[grade]
-  }
-
-  function labelOpacity(grade) {
-    const state = nodeState(grade)
-    if (state === 'current') return 0.7
-    if (state === 'next') return 0.5
-    return 0.28
-  }
+  const allDone = mergedTracks.every(t => t.p >= 100)
 
   function cardLabel() {
     if (selState === 'done') return '✓ Completed'
@@ -213,168 +206,276 @@ export function VaultRankMap({ currentRank, rankProgress, tracks }) {
   const isFuture = selState === 'next' || selState === 'locked'
 
   return (
-    <div style={{ maxWidth: 420, margin: '0 auto', padding: '16px 12px 32px' }}>
-      {/* ── SVG MAP ── */}
-      <svg viewBox="0 0 340 640" width="100%" style={{ display: 'block' }} xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="vrm-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
+    <div style={{ marginBottom: 16 }}>
 
-        {/* ── SEGMENTS ── */}
-        {SEGMENTS.map(seg => {
-          const d = segPath(seg)
-          const prog = getSegmentProgress(seg)
-          const dashOffset = 220 * (1 - prog)
-          return (
-            <g key={`${seg.from}-${seg.to}`}>
-              {/* base unlit */}
-              <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5"
-                strokeLinecap="round" />
-              {/* lit overlay */}
-              <path d={d} fill="none" stroke={seg.color} strokeWidth="5"
-                strokeLinecap="round"
-                pathLength="220"
-                strokeDasharray="220"
-                strokeDashoffset={dashOffset}
-                opacity="0.85"
-              />
-            </g>
-          )
-        })}
-
-        {/* ── CURRENT POSITION DOT ── */}
-        {dotPos && (
-          <g filter="url(#vrm-glow)">
-            <circle cx={dotPos.x} cy={dotPos.y} r="6" fill={RANK_COLORS[currentRank]} />
-            <circle cx={dotPos.x} cy={dotPos.y} r="3" fill="white" />
-          </g>
-        )}
-
-        {/* ── NODES ── */}
-        {RANK_ORDER.map(grade => {
-          const { x, y } = NODES[grade]
-          const color = RANK_COLORS[grade]
-          const state = nodeState(grade)
-          const isLeft = x === 90
-          const labelX = isLeft ? 128 : 212
-          const anchor = isLeft ? 'start' : 'end'
-          const rd = RANK_DATA[grade]
-          const op = labelOpacity(grade)
-
-          return (
-            <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
-              {/* Pulse rings for current */}
-              {state === 'current' && (
-                <>
-                  <circle cx={x} cy={y} r="30" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
-                    <animate attributeName="r" values="30;48;48" dur="2.5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.5;0;0" dur="2.5s" repeatCount="indefinite" />
-                  </circle>
-                  <circle cx={x} cy={y} r="30" fill="none" stroke={color} strokeWidth="1" opacity="0">
-                    <animate attributeName="r" values="30;56;56" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
-                    <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
-                  </circle>
-                </>
-              )}
-
-              {/* Next rank outer ring */}
-              {state === 'next' && (
-                <circle cx={x} cy={y} r="36" fill="none" stroke={color} strokeWidth="1" opacity="0.15" />
-              )}
-
-              {/* Main circle */}
-              {state === 'done' && (
-                <circle cx={x} cy={y} r="30" fill={`${color}15`} stroke={`${color}60`} strokeWidth="2" />
-              )}
-              {state === 'current' && (
-                <>
-                  <circle cx={x} cy={y} r="30" fill="#1e1e1e" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
-                    <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
-                  </circle>
-                </>
-              )}
-              {state === 'next' && (
-                <circle cx={x} cy={y} r="30" fill={`${color}12`} stroke={color} strokeWidth="2" opacity="0.6" />
-              )}
-              {state === 'locked' && (
-                <circle cx={x} cy={y} r="30" fill="#0a0a0a" stroke={`${color}18`} strokeWidth="1.5" />
-              )}
-
-              {/* Selected ring */}
-              {selectedRank === grade && (
-                <circle cx={x} cy={y} r="34" fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.6" />
-              )}
-
-              {/* Grade letter */}
-              <text
-                x={x} y={y + 1}
-                textAnchor="middle" dominantBaseline="middle"
-                fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="18"
-                fill={state === 'current' ? 'white' : color}
-                opacity={state === 'done' ? 0.6 : state === 'current' ? 1 : state === 'next' ? 0.5 : 0.2}
-              >{grade}</text>
-
-              {/* Labels on opposite side */}
-              <text
-                x={labelX} y={y - 7}
-                textAnchor={anchor}
-                fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="12"
-                fill={color} opacity={op}
-              >{rd.name}</text>
-              <text
-                x={labelX} y={y + 9}
-                textAnchor={anchor}
-                fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="10"
-                fill="rgba(255,255,255,0.45)" opacity={op / 0.7 * 0.6}
-              >{labelLine2(grade)}</text>
-            </g>
-          )
-        })}
-      </svg>
-
-      {/* ── DETAIL CARD ── */}
+      {/* ── HEADER CARD ── */}
       <div style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        borderRadius: 14,
-        padding: 16,
+        display: 'grid', gridTemplateColumns: '1fr auto',
+        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 14, overflow: 'hidden', marginBottom: 10,
       }}>
-        {/* Card header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: `${selColor}18`, border: `2px solid ${selColor}60`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900, fontSize: 16,
-            color: selColor, flexShrink: 0,
-          }}>{selectedRank}</div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: selColor, opacity: 0.7, marginBottom: 2 }}>
-              {cardLabel()}
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 14, padding: '14px 16px', alignItems: 'flex-start' }}>
+          {/* Pulsing badge — SVG-native animations only */}
+          <svg width="54" height="54" viewBox="0 0 54 54" style={{ flexShrink: 0 }}>
+            <circle cx="27" cy="27" r="20" fill="none" stroke={rankColor} strokeWidth="1.5" opacity="0">
+              <animate attributeName="r" values="20;36;36" dur="2.5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="27" cy="27" r="20" fill="none" stroke={rankColor} strokeWidth="1" opacity="0">
+              <animate attributeName="r" values="20;44;44" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+              <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+            </circle>
+            <circle cx="27" cy="27" r="20" fill={`${rankColor}1a`} stroke={rankColor} strokeWidth="2">
+              <animate attributeName="stroke-opacity" values="0.45;1;0.45" dur="2.5s" repeatCount="indefinite" />
+            </circle>
+            <text x="27" y="27" textAnchor="middle" dominantBaseline="middle"
+              fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="17" fill="white">
+              {currentRank}
+            </text>
+          </svg>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 19, fontWeight: 800, color: rankColor, lineHeight: 1.1 }}>{rd.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3, marginBottom: 10, lineHeight: 1.4 }}>{rd.sub}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+              <span style={{ fontSize: 10, color: 'var(--muted)' }}>
+                {nextRankGrade ? `Progress to Rank ${nextRankGrade}` : 'Maximum rank achieved'}
+              </span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: nextRankGrade ? RANK_COLORS[nextRankGrade] : rankColor }}>
+                {Math.round(rankProgress * 100)}%
+              </span>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{selRD.name}</div>
+            <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
+              <div style={{
+                height: '100%', borderRadius: 3,
+                width: `${Math.round(rankProgress * 100)}%`,
+                background: nextRankGrade
+                  ? `linear-gradient(90deg, #7c3aed, ${RANK_COLORS[nextRankGrade]})`
+                  : rankColor,
+              }} />
+            </div>
+          </div>
+        </div>
+        {/* Prestige panel */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          borderLeft: '1px solid rgba(255,255,255,0.07)', padding: '12px 20px', gap: 2, flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 26, lineHeight: 1 }}>{PRESTIGE_EMBLEMS[currentRank]}</div>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 24, fontWeight: 900, color: rankColor, lineHeight: 1.1 }}>
+            {prestigeLevel}
+          </div>
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginTop: 2 }}>
+            Prestige
+          </div>
+        </div>
+      </div>
+
+      {/* ── LEGEND ROW ── */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+        {[
+          { color: '#fbbf24', label: 'Core' },
+          { color: '#4ade80', label: 'Offense' },
+          { color: '#60a5fa', label: 'Utility' },
+          { color: '#f87171', label: 'Defence' },
+        ].map(({ color, label }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+            <span style={{ fontSize: 10, color: 'var(--muted)' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── 3-COLUMN GRID ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 140px', gap: 8, alignItems: 'start' }}>
+
+        {/* LEFT — Core + Utility */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24', marginBottom: 5, paddingLeft: 2 }}>Core</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#fbbf24" label="Net Worth"   value={fmt(netWorth)}                                   sub="net worth"      />
+              <Tile color="#fbbf24" label="Days Active" value={daysActive != null ? `${daysActive}d` : '—'}     sub="days active"    />
+              <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`}                  sub="income retained"/>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginBottom: 5, paddingLeft: 2 }}>Utility</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
+              <Tile color="#60a5fa" label="Yield"     value={`${Math.round(yieldPct)}%`}                        sub="income retained"/>
+              <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`}                   sub="vault mastery"  />
+            </div>
           </div>
         </div>
 
-        {/* Track grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+        {/* CENTER — SVG Map */}
+        <svg viewBox="0 0 200 560" width="100%" style={{ display: 'block' }} xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+
+          {/* Segments */}
+          {SEGMENTS.map(seg => {
+            const p0 = NODES[seg.from]
+            const p2 = NODES[seg.to]
+            const d = `M${p0.x},${p0.y} Q${seg.cx},${seg.cy} ${p2.x},${p2.y}`
+            const prog = getSegProg(seg)
+            return (
+              <g key={`${seg.from}-${seg.to}`}>
+                <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" strokeLinecap="round" />
+                {prog > 0 && (
+                  <path d={d} fill="none" stroke={seg.color} strokeWidth="4" strokeLinecap="round"
+                    pathLength="120" strokeDasharray="120" strokeDashoffset={120 * (1 - prog)} opacity="0.85" />
+                )}
+              </g>
+            )
+          })}
+
+          {/* Progress dot on active segment */}
+          {dotPos && (
+            <g filter="url(#vrm-glow)">
+              <circle cx={dotPos.x} cy={dotPos.y} r="4" fill={rankColor} />
+              <circle cx={dotPos.x} cy={dotPos.y} r="2" fill="white" />
+            </g>
+          )}
+
+          {/* Nodes */}
+          {RANK_ORDER.map(grade => {
+            const { x, y } = NODES[grade]
+            const color = RANK_COLORS[grade]
+            const state = nodeState(grade)
+            const isLeft = x < 100
+            const labelX = isLeft ? x + 26 : x - 26
+            const anchor = isLeft ? 'start' : 'end'
+            const nameOp = state === 'current' ? 0.9 : state === 'next' ? 0.55 : state === 'done' ? 0.45 : 0.22
+            const isSelected = selectedRank === grade
+
+            return (
+              <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
+                {/* Pulse rings — current node only, SVG-native animate */}
+                {state === 'current' && (
+                  <>
+                    <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
+                      <animate attributeName="r" values="18;34;34" dur="2.5s" repeatCount="indefinite" />
+                      <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1" opacity="0">
+                      <animate attributeName="r" values="18;42;42" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                      <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                    </circle>
+                  </>
+                )}
+
+                {/* Next — outer glow ring */}
+                {state === 'next' && (
+                  <circle cx={x} cy={y} r="22" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
+                )}
+
+                {/* Selected ring */}
+                {isSelected && state !== 'current' && (
+                  <circle cx={x} cy={y} r="22" fill="none" stroke={color} strokeWidth="1.5"
+                    strokeDasharray="4 3" opacity="0.5" />
+                )}
+
+                {/* Main circle per state */}
+                {state === 'done' && (
+                  <circle cx={x} cy={y} r="18" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
+                )}
+                {state === 'current' && (
+                  <circle cx={x} cy={y} r="18" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
+                    <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
+                  </circle>
+                )}
+                {state === 'next' && (
+                  <circle cx={x} cy={y} r="18" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
+                )}
+                {state === 'locked' && (
+                  <circle cx={x} cy={y} r="18" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
+                )}
+
+                {/* Grade letter */}
+                <text x={x} y={y} textAnchor="middle" dominantBaseline="middle"
+                  fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="14" fill={color}
+                  opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>
+                  {grade}
+                </text>
+
+                {/* Labels on opposite side */}
+                <text x={labelX} y={y - 5} textAnchor={anchor}
+                  fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="9" fill={color} opacity={nameOp}>
+                  {RANK_DATA[grade].name}
+                </text>
+                <text x={labelX} y={y + 7} textAnchor={anchor}
+                  fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="8"
+                  fill="rgba(255,255,255,0.45)" opacity={nameOp}>
+                  {RANK_REQ_SHORT[grade]}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+
+        {/* RIGHT — Offense + Defence */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80', marginBottom: 5, paddingLeft: 2 }}>Offense</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
+              <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}              sub="total portfolio" />
+              <Tile color="#4ade80" label="Invested" value={fmt(invested)}                sub="cost basis"      />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginBottom: 5, paddingLeft: 2 }}>Defence</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#f87171" label="Debt"       value={fmt(debt)}                      sub="total debt"    />
+              <Tile color="#f87171" label="Defence"    value={`${Math.round(defencePct)}%`}   sub="emergency fund"/>
+              <Tile color="#f87171" label="Debt Ratio" value={`${Math.round(debtRatio)}%`}    sub="debt / assets" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── DETAIL CARD ── */}
+      <div style={{
+        borderRadius: 14, marginTop: 10,
+        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+        padding: '14px 16px',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: `${selColor}20`, border: `1.5px solid ${selColor}60`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900, fontSize: 13,
+            color: selColor, flexShrink: 0,
+          }}>{selectedRank}</div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: selColor, opacity: 0.7, marginBottom: 1 }}>
+              {cardLabel()}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{selRD.name}</div>
+          </div>
+        </div>
+
+        {/* Track 3-col grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 14 }}>
           {mergedTracks.map((t, i) => (
             <div key={i} style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 10px',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 9px',
             }}>
-              <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>{t.n}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 6, lineHeight: 1.3 }}>{t.v}</div>
+              <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>{t.n}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', marginBottom: 5, lineHeight: 1.3 }}>{t.v}</div>
               <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                 <div style={{
                   height: '100%', borderRadius: 2,
                   width: `${Math.min(100, t.p)}%`,
-                  background: t.p >= 100 ? '#34d399' : selColor,
-                  transition: 'width 0.4s',
+                  background: t.p >= 100 ? '#4ade80' : selColor,
                 }} />
               </div>
             </div>
@@ -382,50 +483,51 @@ export function VaultRankMap({ currentRank, rankProgress, tracks }) {
         </div>
 
         {/* Bonus achievements */}
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginBottom: 10 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginBottom: 8 }}>
           Bonus Achievements
         </div>
 
         {isFuture ? (
           <div style={{
-            padding: '12px 14px', borderRadius: 9,
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            fontSize: 12, color: 'var(--muted)', fontStyle: 'italic',
+            padding: '10px 12px', borderRadius: 9,
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
+            fontSize: 11, color: 'var(--muted)', fontStyle: 'italic',
+            marginBottom: selectedRank === currentRank && nextRankGrade ? 12 : 0,
           }}>
-            🔒 3 hidden achievements — reach this rank to unlock
+            🔒 3 hidden achievements — reach this rank to reveal
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: (selectedRank === currentRank && nextRankGrade) ? 16 : 0 }}>
-            {selRD.bonus.map((b, i) => {
-              const unlocked = allTracksDone
-              return (
-                <div key={i} style={{
-                  background: unlocked ? `${selColor}08` : 'rgba(255,255,255,0.02)',
-                  border: unlocked ? `1px solid ${selColor}25` : '1px solid rgba(255,255,255,0.06)',
-                  borderRadius: 9, padding: '10px 8px', textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: 18, marginBottom: 5 }}>{unlocked ? b.icon : '🔒'}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: unlocked ? 'var(--text)' : 'var(--muted)', marginBottom: 3, lineHeight: 1.3 }}>
-                    {unlocked ? b.title : '???'}
-                  </div>
-                  <div style={{ fontSize: 9, color: 'var(--muted)', lineHeight: 1.4 }}>
-                    {unlocked ? b.desc : 'Complete all tracks to reveal'}
-                  </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7,
+            marginBottom: selectedRank === currentRank && nextRankGrade ? 12 : 0,
+          }}>
+            {selRD.bonus.map((b, i) => (
+              <div key={i} style={{
+                background: allDone ? `${selColor}0a` : 'rgba(255,255,255,0.02)',
+                border: allDone ? `1px solid ${selColor}25` : '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 9, padding: '9px 8px', textAlign: 'center',
+                opacity: allDone ? 1 : 0.35,
+              }}>
+                <div style={{ fontSize: 18, marginBottom: 4 }}>{allDone ? b.icon : '🔒'}</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)', marginBottom: 2, lineHeight: 1.3 }}>
+                  {allDone ? b.title : '???'}
                 </div>
-              )
-            })}
+                <div style={{ fontSize: 8, color: 'var(--muted)', lineHeight: 1.4 }}>
+                  {allDone ? b.desc : 'Complete tracks to reveal'}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Progress bar to next rank */}
         {selectedRank === currentRank && nextRankGrade && (
-          <div style={{ marginTop: isFuture ? 16 : 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)' }}>
                 Progress to Rank {nextRankGrade}
               </span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: RANK_COLORS[nextRankGrade] }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: RANK_COLORS[nextRankGrade] }}>
                 {Math.round(rankProgress * 100)}%
               </span>
             </div>
@@ -434,7 +536,6 @@ export function VaultRankMap({ currentRank, rankProgress, tracks }) {
                 height: '100%', borderRadius: 3,
                 width: `${Math.min(100, rankProgress * 100)}%`,
                 background: `linear-gradient(90deg, #7c3aed, ${RANK_COLORS[nextRankGrade]})`,
-                transition: 'width 0.4s',
               }} />
             </div>
           </div>

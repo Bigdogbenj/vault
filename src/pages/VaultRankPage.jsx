@@ -40,183 +40,84 @@ export function VaultRankPage({ data, updateData, prices }) {
   const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
   const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
   const portfolioTotal = investorValue + cryptoValue
+  const debtRatio = (totalDebt + totalBalance) > 0 ? (totalDebt / (totalDebt + totalBalance)) * 100 : 0
+  const prestigeScore = ['F', 'D', 'C', 'B', 'A', 'S'].indexOf(rank.grade) + (xpPct / 100)
 
-  const statSheet = [
-    {
-      name: 'LIQUIDITY',
-      value: liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—',
-      descriptor: 'months of runway',
-      color: liquidityMonths == null ? 'var(--muted)' : liquidityMonths >= 3 ? 'var(--green)' : liquidityMonths >= 1 ? 'var(--amber)' : 'var(--red)',
-    },
-    {
-      name: 'ATTACK',
-      value: fmt(savings),
-      descriptor: 'deployed per month',
-      color: savings > 0 ? 'var(--green)' : savings < 0 ? 'var(--red)' : 'var(--muted)',
-    },
-    {
-      name: 'DEFENCE',
-      value: `${defencePct.toFixed(0)}%`,
-      descriptor: 'of 6-month emergency fund',
-      color: defencePct >= 100 ? 'var(--green)' : defencePct >= 50 ? 'var(--amber)' : 'var(--red)',
-    },
-    {
-      name: 'YIELD',
-      value: `${savingsRate.toFixed(0)}%`,
-      descriptor: 'income retained',
-      color: savingsRate >= 20 ? 'var(--green)' : savingsRate >= 10 ? 'var(--amber)' : 'var(--red)',
-    },
-    {
-      name: 'POWER',
-      value: fmt(portfolioTotal),
-      descriptor: 'total portfolio',
-      color: portfolioTotal >= 10000 ? 'var(--green)' : portfolioTotal >= 1000 ? 'var(--amber)' : 'var(--muted)',
-    },
-    {
-      name: 'PRESTIGE',
-      value: `${avgLevel.toFixed(1)} / 6.0`,
-      descriptor: 'vault mastery',
-      color: gradeColor,
-    },
-  ]
+  const liveTracks = useMemo(() => {
+    const g = rank.grade
+    const completedGoals = (data.goals ?? []).filter(goal => goal.completed).length
+    if (g === 'F') return [
+      { pct: saverValue > 0 ? 100 : 0 },
+      { pct: investorValue > 0 ? 100 : 0 },
+      { pct: cryptoValue > 0 ? 100 : 0 },
+      { pct: 100 },
+      { pct: superValue > 0 ? 100 : 0 },
+      { pct: (data.debts ?? []).length > 0 ? 100 : 0 },
+    ]
+    if (g === 'D') return [
+      { pct: Math.min(100, saverValue / 5000 * 100) },
+      { pct: Math.min(100, investorValue / 2500 * 100) },
+      { pct: Math.min(100, cryptoValue / 2500 * 100) },
+      { pct: totalExpenses > 0 ? 100 : 0 },
+      { pct: Math.min(100, superValue / 10000 * 100) },
+      { pct: Math.min(100, debtPctPaid / 10 * 100) },
+    ]
+    if (g === 'C') return [
+      { pct: Math.min(100, saverValue / 10000 * 100) },
+      { pct: Math.min(100, investorValue / 7500 * 100) },
+      { pct: Math.min(100, cryptoValue / 6000 * 100) },
+      { pct: completedGoals >= 1 || savingsRate >= 10 ? 100 : Math.min(100, savingsRate / 10 * 100) },
+      { pct: Math.min(100, superValue / 25000 * 100) },
+      { pct: Math.min(100, debtPctPaid / 25 * 100) },
+    ]
+    if (g === 'B') return [
+      { pct: Math.min(100, saverValue / 20000 * 100) },
+      { pct: Math.min(100, investorValue / 15000 * 100) },
+      { pct: Math.min(100, cryptoValue / 15000 * 100) },
+      { pct: Math.min(100, savingsRate / 20 * 100) },
+      { pct: Math.min(100, superValue / 50000 * 100) },
+      { pct: Math.min(100, debtPctPaid / 50 * 100) },
+    ]
+    if (g === 'A') return [
+      { pct: Math.min(100, saverValue / 35000 * 100) },
+      { pct: Math.min(100, investorValue / 35000 * 100) },
+      { pct: Math.min(100, cryptoValue / 30000 * 100) },
+      { pct: Math.min(100, completedGoals / 3 * 50 + Math.min(savingsRate, 20) / 20 * 50) },
+      { pct: Math.min(100, superValue / 150000 * 100) },
+      { pct: Math.min(100, debtPctPaid / 75 * 100) },
+    ]
+    return [
+      { pct: Math.min(100, saverValue / 50000 * 100) },
+      { pct: Math.min(100, investorValue / 75000 * 100) },
+      { pct: Math.min(100, cryptoValue / 75000 * 100) },
+      { pct: Math.min(100, savingsRate / 30 * 100) },
+      { pct: Math.min(100, superValue / 250000 * 100) },
+      { pct: Math.min(100, debtPctPaid) },
+    ]
+  }, [rank.grade, saverValue, investorValue, cryptoValue, savingsRate, superValue, debtPctPaid, totalExpenses, data.goals, data.debts])
 
   return (
     <div className="page">
-      {/* Character header */}
-      <div className="card" style={{
-        background: 'linear-gradient(135deg, #16181f 0%, #12141a 100%)',
-        border: `1px solid ${gradeColor}40`,
-        padding: '24px 28px', position: 'relative', overflow: 'hidden',
-      }}>
-        <div style={{
-          position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 120, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900,
-          color: `${gradeColor}10`, lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
-        }}>{rank.grade}</div>
+      <VaultRankMap
+        currentRank={rank.grade}
+        rankProgress={xpPct / 100}
+        tracks={liveTracks}
+        netWorth={trueNetWorth}
+        invested={investedCostBasis}
+        debt={debtTotalRemain}
+        savingsRate={savingsRate}
+        daysActive={daysActive}
+        liquidityMonths={liquidityMonths}
+        attackPerMonth={savings}
+        defencePct={defencePct}
+        yieldPct={savingsRate}
+        powerTotal={portfolioTotal}
+        prestigeScore={prestigeScore}
+        debtRatio={debtRatio}
+      />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-          {/* Grade badge */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: 14,
-              background: `${gradeColor}18`, border: `2px solid ${gradeColor}50`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900, fontSize: 38, color: gradeColor,
-            }}>{rank.grade}</div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--muted)' }}>VAULT RANK</div>
-          </div>
-
-          {/* Title + message + XP bar */}
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 28, fontWeight: 800, color: gradeColor, lineHeight: 1.1 }}>{rank.title}</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>{RANK_MESSAGES[rank.grade]}</div>
-            <div style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>XP to next rank</span>
-                <span style={{ fontSize: 11, color: gradeColor, fontWeight: 600 }}>
-                  {nextRank ? (progressToNext ?? 'Almost there') : 'MAX RANK'}
-                </span>
-              </div>
-              <div style={{ height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
-                <div style={{ height: '100%', background: gradeColor, borderRadius: 3, width: `${xpPct}%`, transition: 'width 0.4s ease' }} />
-              </div>
-            </div>
-          </div>
-
-          {/* 3×2 stat chips */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, flexShrink: 0 }}>
-            {[
-              { icon: '💰', label: 'Net Worth',    value: fmt(trueNetWorth),            color: trueNetWorth >= 0 ? 'var(--text)' : 'var(--red)' },
-              { icon: '📈', label: 'Invested',     value: fmt(investedCostBasis),       color: 'var(--text)' },
-              { icon: '⏱️', label: 'Days Active',  value: daysActive != null ? `${daysActive}d` : '—', color: 'var(--text)' },
-              { icon: '💾', label: 'Savings Rate', value: `${savingsRate.toFixed(0)}%`, color: savingsRate >= 20 ? 'var(--green)' : savingsRate >= 10 ? 'var(--amber)' : 'var(--red)' },
-              { icon: '⚔️', label: 'Debt',         value: fmt(debtTotalRemain),          color: debtTotalRemain > 0 ? 'var(--red)' : 'var(--green)' },
-            ].map(({ icon, label, value, color }) => (
-              <div key={label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 12px', minWidth: 90 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 3 }}>{icon} {label}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color }}>{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Animated Rank Map */}
-      {(() => {
-        const completedGoals = (data.goals ?? []).filter(g => g.completed).length
-        const g = rank.grade
-        const liveTracks =
-          g === 'F' ? [
-            { pct: saverValue > 0 ? 100 : 0 },
-            { pct: investorValue > 0 ? 100 : 0 },
-            { pct: cryptoValue > 0 ? 100 : 0 },
-            { pct: 100 },
-            { pct: superValue > 0 ? 100 : 0 },
-            { pct: (data.debts ?? []).length > 0 ? 100 : 0 },
-          ] : g === 'D' ? [
-            { pct: Math.min(100, saverValue / 5000 * 100) },
-            { pct: Math.min(100, investorValue / 2500 * 100) },
-            { pct: Math.min(100, cryptoValue / 2500 * 100) },
-            { pct: totalExpenses > 0 ? 100 : 0 },
-            { pct: Math.min(100, superValue / 10000 * 100) },
-            { pct: Math.min(100, debtPctPaid / 10 * 100) },
-          ] : g === 'C' ? [
-            { pct: Math.min(100, saverValue / 10000 * 100) },
-            { pct: Math.min(100, investorValue / 7500 * 100) },
-            { pct: Math.min(100, cryptoValue / 6000 * 100) },
-            { pct: completedGoals >= 1 || savingsRate >= 10 ? 100 : Math.min(100, savingsRate / 10 * 100) },
-            { pct: Math.min(100, superValue / 25000 * 100) },
-            { pct: Math.min(100, debtPctPaid / 25 * 100) },
-          ] : g === 'B' ? [
-            { pct: Math.min(100, saverValue / 20000 * 100) },
-            { pct: Math.min(100, investorValue / 15000 * 100) },
-            { pct: Math.min(100, cryptoValue / 15000 * 100) },
-            { pct: Math.min(100, savingsRate / 20 * 100) },
-            { pct: Math.min(100, superValue / 50000 * 100) },
-            { pct: Math.min(100, debtPctPaid / 50 * 100) },
-          ] : g === 'A' ? [
-            { pct: Math.min(100, saverValue / 35000 * 100) },
-            { pct: Math.min(100, investorValue / 35000 * 100) },
-            { pct: Math.min(100, cryptoValue / 30000 * 100) },
-            { pct: Math.min(100, completedGoals / 3 * 50 + Math.min(savingsRate, 20) / 20 * 50) },
-            { pct: Math.min(100, superValue / 150000 * 100) },
-            { pct: Math.min(100, debtPctPaid / 75 * 100) },
-          ] : [
-            { pct: Math.min(100, saverValue / 50000 * 100) },
-            { pct: Math.min(100, investorValue / 75000 * 100) },
-            { pct: Math.min(100, cryptoValue / 75000 * 100) },
-            { pct: Math.min(100, savingsRate / 30 * 100) },
-            { pct: Math.min(100, superValue / 250000 * 100) },
-            { pct: Math.min(100, debtPctPaid) },
-          ]
-        return (
-          <VaultRankMap
-            currentRank={rank.grade}
-            rankProgress={xpPct / 100}
-            tracks={liveTracks}
-          />
-        )
-      })()}
-
-      {/* Rank Roadmap */}
       <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
-
-      {/* Track cards + detail modal */}
       <VaultRank data={data} prices={prices} netWorth={trueNetWorth} />
-
-      {/* Stat Sheet */}
-      <div className="card">
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)', marginBottom: 16 }}>Stat Sheet</div>
-        <div className="grid-3" style={{ gap: 10 }}>
-          {statSheet.map(({ name, value, descriptor, color }) => (
-            <div key={name} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
-              <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--muted)', marginBottom: 8 }}>{name}</div>
-              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 24, fontWeight: 700, color }}>{value}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>{descriptor}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       <AchievementsWall
         saverValue={saverValue} investorValue={investorValue} cryptoValue={cryptoValue}
