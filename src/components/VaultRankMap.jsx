@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const RANK_ORDER = ['F', 'D', 'C', 'B', 'A', 'S']
 
@@ -106,20 +106,20 @@ const RANK_REQ_SHORT = {
 }
 
 const NODES = {
-  F: { x: 50,  y: 440 },
-  D: { x: 150, y: 360 },
-  C: { x: 50,  y: 280 },
-  B: { x: 150, y: 200 },
-  A: { x: 50,  y: 120 },
-  S: { x: 150, y: 40  },
+  F: { x: 50,  y: 930 },
+  D: { x: 150, y: 760 },
+  C: { x: 50,  y: 590 },
+  B: { x: 150, y: 420 },
+  A: { x: 50,  y: 250 },
+  S: { x: 150, y: 80  },
 }
 
 const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 100, cy: 400, color: RANK_COLORS.D },
-  { from: 'D', to: 'C', cx: 100, cy: 320, color: RANK_COLORS.C },
-  { from: 'C', to: 'B', cx: 100, cy: 240, color: RANK_COLORS.B },
-  { from: 'B', to: 'A', cx: 100, cy: 160, color: RANK_COLORS.A },
-  { from: 'A', to: 'S', cx: 100, cy: 80,  color: RANK_COLORS.S },
+  { from: 'F', to: 'D', cx: 100, cy: 845, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 100, cy: 675, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 100, cy: 505, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 100, cy: 335, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 100, cy: 165, color: RANK_COLORS.S },
 ]
 
 const fmt = (n) => {
@@ -150,6 +150,13 @@ export function VaultRankMap({
   powerTotal, prestigeScore, debtRatio,
 }) {
   const [selectedRank, setSelectedRank] = useState(currentRank)
+  const scrollRef = useRef(null)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight * 0.78
+    }
+  }, [])
 
   const currentIdx = RANK_ORDER.indexOf(currentRank)
   const nextRankGrade = RANK_ORDER[currentIdx + 1]
@@ -169,10 +176,12 @@ export function VaultRankMap({
   let dotPos = null
   if (activeSeg && rankProgress > 0) {
     const p0 = NODES[activeSeg.from]
+    const p1 = { x: activeSeg.cx, y: activeSeg.cy }
     const p2 = NODES[activeSeg.to]
+    const t = rankProgress
     dotPos = {
-      x: p0.x + (p2.x - p0.x) * rankProgress,
-      y: p0.y + (p2.y - p0.y) * rankProgress,
+      x: (1-t)*(1-t)*p0.x + 2*(1-t)*t*p1.x + t*t*p2.x,
+      y: (1-t)*(1-t)*p0.y + 2*(1-t)*t*p1.y + t*t*p2.y,
     }
   }
 
@@ -308,98 +317,109 @@ export function VaultRankMap({
           </div>
         </div>
 
-        {/* CENTER — SVG Map */}
-        <div style={{ width: '100%', maxHeight: 420 }}>
-          <svg
-            width="100%"
-            height="420"
-            viewBox="0 0 200 480"
-            preserveAspectRatio="xMidYMid meet"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-          <defs>
-            <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-            </filter>
-          </defs>
+        {/* CENTER — scrollable snake map */}
+        <div style={{ position: 'relative', height: 420 }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
+          <div ref={scrollRef} className="map-scroll" style={{ height: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <svg width="100%" viewBox="0 0 200 1100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                </filter>
+              </defs>
 
-          {/* Segments */}
-          {SEGMENTS.map(seg => {
-            const p0 = NODES[seg.from]
-            const p2 = NODES[seg.to]
-            const d = `M${p0.x},${p0.y} Q${seg.cx},${seg.cy} ${p2.x},${p2.y}`
-            const prog = getSegProg(seg)
-            return (
-              <g key={`${seg.from}-${seg.to}`}>
-                <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" strokeLinecap="round" />
-                {prog > 0 && (
-                  <path d={d} fill="none" stroke={seg.color} strokeWidth="4" strokeLinecap="round"
-                    pathLength="120" strokeDasharray="120" strokeDashoffset={120 * (1 - prog)} opacity="0.85" />
-                )}
-              </g>
-            )
-          })}
+              {/* Segments */}
+              {SEGMENTS.map(seg => {
+                const p0 = NODES[seg.from]
+                const p2 = NODES[seg.to]
+                const d = `M${p0.x},${p0.y} Q${seg.cx},${seg.cy} ${p2.x},${p2.y}`
+                const prog = getSegProg(seg)
+                return (
+                  <g key={`${seg.from}-${seg.to}`}>
+                    <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5" strokeLinecap="round" />
+                    {prog > 0 && (
+                      <path d={d} fill="none" stroke={seg.color} strokeWidth="5" strokeLinecap="round"
+                        pathLength="120" strokeDasharray="120" strokeDashoffset={120 * (1 - prog)} opacity="0.85" />
+                    )}
+                  </g>
+                )
+              })}
 
-          {/* Progress dot on active segment */}
-          {dotPos && (
-            <g filter="url(#vrm-glow)">
-              <circle cx={dotPos.x} cy={dotPos.y} r="4" fill={rankColor} />
-              <circle cx={dotPos.x} cy={dotPos.y} r="2" fill="white" />
-            </g>
-          )}
+              {/* Progress dot on active segment */}
+              {dotPos && (
+                <g filter="url(#vrm-glow)">
+                  <circle cx={dotPos.x} cy={dotPos.y} r="5" fill={rankColor} />
+                  <circle cx={dotPos.x} cy={dotPos.y} r="2.5" fill="white" />
+                </g>
+              )}
 
-          {/* Nodes — labels removed; click to see details in the card below */}
-          {RANK_ORDER.map(grade => {
-            const { x, y } = NODES[grade]
-            const color = RANK_COLORS[grade]
-            const state = nodeState(grade)
-            const isSelected = selectedRank === grade
+              {/* Nodes */}
+              {RANK_ORDER.map(grade => {
+                const { x, y } = NODES[grade]
+                const color = RANK_COLORS[grade]
+                const state = nodeState(grade)
+                const isSelected = selectedRank === grade
+                const isLeft = x < 100
+                const labelX = isLeft ? 84 : 116
+                const anchor = isLeft ? 'start' : 'end'
+                const nameOp = state === 'current' ? 0.9 : state === 'next' ? 0.55 : state === 'done' ? 0.45 : 0.22
 
-            return (
-              <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
-                {state === 'current' && (
-                  <>
-                    <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
-                      <animate attributeName="r" values="14;24;24" dur="2.5s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1" opacity="0">
-                      <animate attributeName="r" values="14;30;30" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
-                      <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
-                    </circle>
-                  </>
-                )}
-                {state === 'next' && (
-                  <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
-                )}
-                {isSelected && state !== 'current' && (
-                  <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1.5"
-                    strokeDasharray="4 3" opacity="0.5" />
-                )}
-                {state === 'done' && (
-                  <circle cx={x} cy={y} r="14" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
-                )}
-                {state === 'current' && (
-                  <circle cx={x} cy={y} r="14" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
-                    <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
-                  </circle>
-                )}
-                {state === 'next' && (
-                  <circle cx={x} cy={y} r="14" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
-                )}
-                {state === 'locked' && (
-                  <circle cx={x} cy={y} r="14" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
-                )}
-                <text x={x} y={y} textAnchor="middle" dominantBaseline="middle"
-                  fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="20" fill={color}
-                  opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>
-                  {grade}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
+                return (
+                  <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
+                    {state === 'current' && (
+                      <>
+                        <circle cx={x} cy={y} r="28" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
+                          <animate attributeName="r" values="28;44;44" dur="2.5s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
+                        </circle>
+                        <circle cx={x} cy={y} r="28" fill="none" stroke={color} strokeWidth="1" opacity="0">
+                          <animate attributeName="r" values="28;52;52" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                          <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                        </circle>
+                      </>
+                    )}
+                    {state === 'next' && (
+                      <circle cx={x} cy={y} r="34" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
+                    )}
+                    {isSelected && state !== 'current' && (
+                      <circle cx={x} cy={y} r="34" fill="none" stroke={color} strokeWidth="1.5"
+                        strokeDasharray="4 3" opacity="0.5" />
+                    )}
+                    {state === 'done' && (
+                      <circle cx={x} cy={y} r="28" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
+                    )}
+                    {state === 'current' && (
+                      <circle cx={x} cy={y} r="28" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
+                        <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
+                      </circle>
+                    )}
+                    {state === 'next' && (
+                      <circle cx={x} cy={y} r="28" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
+                    )}
+                    {state === 'locked' && (
+                      <circle cx={x} cy={y} r="28" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
+                    )}
+                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle"
+                      fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="16" fill={color}
+                      opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>
+                      {grade}
+                    </text>
+                    <text x={labelX} y={y - 8} textAnchor={anchor}
+                      fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="11" fill={color} opacity={nameOp}>
+                      {RANK_DATA[grade].name}
+                    </text>
+                    <text x={labelX} y={y + 8} textAnchor={anchor}
+                      fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="9"
+                      fill="rgba(255,255,255,0.45)" opacity={nameOp}>
+                      {RANK_REQ_SHORT[grade]}
+                    </text>
+                  </g>
+                )
+              })}
+            </svg>
+          </div>
         </div>
 
         {/* RIGHT — Offense + Defence */}

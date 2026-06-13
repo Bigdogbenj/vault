@@ -35,6 +35,8 @@ h1, h2, h3, h4, h5, h6 { font-family: 'Space Grotesk', sans-serif; }
 
 .layout { display: flex; min-height: 100vh; }
 
+.map-scroll::-webkit-scrollbar { display: none; }
+
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
