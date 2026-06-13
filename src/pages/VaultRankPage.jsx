@@ -173,11 +173,11 @@ export function VaultRankPage({ data, updateData, prices }) {
 
 const RANK_REQ = {
   F: 'Starting rank',
-  D: 'Avg lvl 2 · +ve NW',
-  C: 'Avg lvl 3 · +ve NW',
-  B: 'Avg lvl 4 · $30k NW',
-  A: 'Avg lvl 5 · $80k NW',
-  S: 'Avg lvl 5 · $300k NW · all L5+',
+  D: 'Avg level 2 · Positive net worth',
+  C: 'Avg level 3 · Positive net worth',
+  B: 'Avg level 4 · $30,000 net worth',
+  A: 'Avg level 5 · $80,000 net worth',
+  S: 'Avg level 5 · $300,000 net worth · All tracks level 5+',
 }
 
 function RankRoadmap({ rank, nextRank, avgLevel, trueNetWorth }) {
