@@ -106,20 +106,20 @@ const RANK_REQ_SHORT = {
 }
 
 const NODES = {
-  F: { x: 50,  y: 350 },
-  D: { x: 150, y: 285 },
-  C: { x: 50,  y: 220 },
-  B: { x: 150, y: 155 },
-  A: { x: 50,  y: 90  },
-  S: { x: 150, y: 25  },
+  F: { x: 50,  y: 440 },
+  D: { x: 150, y: 360 },
+  C: { x: 50,  y: 280 },
+  B: { x: 150, y: 200 },
+  A: { x: 50,  y: 120 },
+  S: { x: 150, y: 40  },
 }
 
 const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 100, cy: 318, color: RANK_COLORS.D },
-  { from: 'D', to: 'C', cx: 100, cy: 253, color: RANK_COLORS.C },
-  { from: 'C', to: 'B', cx: 100, cy: 188, color: RANK_COLORS.B },
-  { from: 'B', to: 'A', cx: 100, cy: 123, color: RANK_COLORS.A },
-  { from: 'A', to: 'S', cx: 100, cy: 58,  color: RANK_COLORS.S },
+  { from: 'F', to: 'D', cx: 100, cy: 400, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 100, cy: 320, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 100, cy: 240, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 100, cy: 160, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 100, cy: 80,  color: RANK_COLORS.S },
 ]
 
 const fmt = (n) => {
@@ -309,7 +309,7 @@ export function VaultRankMap({
         </div>
 
         {/* CENTER — SVG Map (fixed 200px tall so it never scales with container width) */}
-        <svg viewBox="0 0 200 380"
+        <svg viewBox="0 0 200 480"
           style={{ display: 'block', height: 200, width: 'auto', justifySelf: 'center' }}
           xmlns="http://www.w3.org/2000/svg">
           <defs>
