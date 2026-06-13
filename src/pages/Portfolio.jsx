@@ -386,19 +386,35 @@ function TransactionModal({ data, usdToAud, onClose, onSave }) {
   )
 }
 
+function getStageAmount(stages, month) {
+  const year = Math.floor(month / 12)
+  let amount = stages[0]?.amount ?? 0
+  for (const stage of stages) {
+    if (stage.fromYear <= year) amount = stage.amount
+    else break
+  }
+  return amount
+}
+
 export function Portfolio({ data, updateData, prices }) {
   const [tab, setTab] = useState('stocks')
   const [modal, setModal] = useState(null)
   const [editVal, setEditVal] = useState(null)
   const [histRange, setHistRange] = useState('1M')
+  const [addStage, setAddStage] = useState(null)
+
   const projSettings = data.projSettings ?? { years: 10, rate: { crypto: 15, etfs: 11, stocks: 15 }, monthly: { crypto: 200, etfs: 500, stocks: 300 } }
-  const projYears   = projSettings.years
-  const projRate    = projSettings.rate
-  const projMonthly = projSettings.monthly
+  const projYears = projSettings.years
+  const projRate  = projSettings.rate
+  const projStages = projSettings.projStages ?? {
+    crypto: [{ fromYear: 0, amount: projSettings.monthly?.crypto ?? 200 }],
+    etfs:   [{ fromYear: 0, amount: projSettings.monthly?.etfs   ?? 500 }],
+    stocks: [{ fromYear: 0, amount: projSettings.monthly?.stocks ?? 300 }],
+  }
   const setProjSettings = (patch) => updateData('projSettings', { ...projSettings, ...patch })
-  const setProjYears   = (v) => setProjSettings({ years: v })
-  const setProjRate    = (fn) => setProjSettings({ rate: typeof fn === 'function' ? fn(projRate) : fn })
-  const setProjMonthly = (fn) => setProjSettings({ monthly: typeof fn === 'function' ? fn(projMonthly) : fn })
+  const setProjYears  = (v) => setProjSettings({ years: v })
+  const setProjRate   = (fn) => setProjSettings({ rate: typeof fn === 'function' ? fn(projRate) : fn })
+  const setProjStages = (fn) => setProjSettings({ projStages: typeof fn === 'function' ? fn(projStages) : fn })
 
   const snapshots = useSnapshots()
   const usdToAud = prices?.usdToAud ?? 1.55
@@ -464,9 +480,9 @@ export function Portfolio({ data, updateData, prices }) {
     const proj = []
 
     for (let m = 1; m <= projYears * 12; m++) {
-      c = c * (1 + cryptoMonthlyRate) + projMonthly.crypto
-      s = s * (1 + stockMonthlyRate)  + projMonthly.stocks
-      e = e * (1 + etfMonthlyRate)    + projMonthly.etfs
+      c = c * (1 + cryptoMonthlyRate) + getStageAmount(projStages.crypto, m)
+      s = s * (1 + stockMonthlyRate)  + getStageAmount(projStages.stocks, m)
+      e = e * (1 + etfMonthlyRate)    + getStageAmount(projStages.etfs,   m)
 
       if (m % 3 === 0) {
         const d = new Date(now)
@@ -497,7 +513,7 @@ export function Portfolio({ data, updateData, prices }) {
       projMilestones: trackers.map(t => t.found).filter(Boolean),
       projFinalValues: { crypto: Math.round(c), stocks: Math.round(s), etfs: Math.round(e) },
     }
-  }, [snapshots, cryptoTotal, stockTotal, etfTotal, projRate.crypto, projRate.etfs, projRate.stocks, projYears, projMonthly]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [snapshots, cryptoTotal, stockTotal, etfTotal, projRate.crypto, projRate.etfs, projRate.stocks, projYears, projStages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveTransaction = (tx) => {
     if (tx.assetType === 'crypto') {
@@ -633,12 +649,63 @@ export function Portfolio({ data, updateData, prices }) {
         <div className="section-header">
           <span className="section-title">Growth Projection</span>
         </div>
-        <div className="grid-3" style={{ marginBottom: 16 }}>
-          {[['crypto','Monthly into Crypto (AUD)'],['etfs','Monthly into ETFs (AUD)'],['stocks','Monthly into Stocks (AUD)']].map(([key, lbl]) => (
-            <div key={key} className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">{lbl}</label>
-              <input className="form-input" type="number" min="0" value={projMonthly[key]}
-                onChange={e => setProjMonthly(p => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))} />
+        <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { key: 'crypto', label: 'Crypto',  color: '#f0a500' },
+            { key: 'etfs',   label: 'ETFs',    color: '#4caf7d' },
+            { key: 'stocks', label: 'Stocks',  color: '#5b9ef0' },
+          ].map(({ key, label, color }) => (
+            <div key={key} style={{ borderLeft: `3px solid ${color}`, paddingLeft: 12, paddingTop: 8, paddingBottom: 4, background: `${color}08`, borderRadius: '0 8px 8px 0' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color, marginBottom: 6 }}>{label} Monthly Contributions</div>
+              {projStages[key].map((stage, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 68, flexShrink: 0 }}>From yr {stage.fromYear}:</span>
+                  <input
+                    className="form-input"
+                    type="number" min="0"
+                    style={{ width: 84, padding: '3px 8px', fontSize: 12 }}
+                    value={stage.amount}
+                    onChange={e => {
+                      const updated = projStages[key].map((s, i) => i === idx ? { ...s, amount: parseFloat(e.target.value) || 0 } : s)
+                      setProjStages(st => ({ ...st, [key]: updated }))
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>/mo</span>
+                  {idx > 0 && (
+                    <button className="icon-btn danger" style={{ padding: '2px 5px', fontSize: 11 }}
+                      onClick={() => setProjStages(st => ({ ...st, [key]: st[key].filter((_, i) => i !== idx) }))}>✕</button>
+                  )}
+                </div>
+              ))}
+              {addStage?.key === key ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>From yr:</span>
+                  <input className="form-input" type="number" min="1"
+                    style={{ width: 52, padding: '3px 8px', fontSize: 12 }}
+                    value={addStage.fromYear}
+                    onChange={e => setAddStage(s => ({ ...s, fromYear: e.target.value }))} />
+                  <input className="form-input" type="number" min="0"
+                    style={{ width: 80, padding: '3px 8px', fontSize: 12 }}
+                    value={addStage.amount}
+                    placeholder="$/mo"
+                    onChange={e => setAddStage(s => ({ ...s, amount: e.target.value }))} />
+                  <button className="btn btn-sm btn-primary" style={{ padding: '3px 10px', fontSize: 11 }}
+                    onClick={() => {
+                      const fy = parseInt(addStage.fromYear)
+                      const amt = parseFloat(addStage.amount) || 0
+                      if (!fy || fy < 1) return
+                      const updated = [...projStages[key], { fromYear: fy, amount: amt }]
+                        .sort((a, b) => a.fromYear - b.fromYear)
+                      setProjStages(st => ({ ...st, [key]: updated }))
+                      setAddStage(null)
+                    }}>Save</button>
+                  <button className="btn btn-sm btn-ghost" style={{ padding: '3px 10px', fontSize: 11 }}
+                    onClick={() => setAddStage(null)}>Cancel</button>
+                </div>
+              ) : (
+                <button className="btn btn-sm btn-ghost" style={{ marginTop: 2, fontSize: 11, padding: '2px 8px' }}
+                  onClick={() => setAddStage({ key, fromYear: '', amount: '' })}>+ Add stage</button>
+              )}
             </div>
           ))}
         </div>
