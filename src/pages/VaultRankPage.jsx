@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { VaultRank, useVaultRankInfo, RANK_MESSAGES, OVERALL_RANKS, GRADE_COLORS } from '../components/VaultRank'
 import { resolvedAccountBalance, fmt } from '../utils'
 import { Modal } from '../components/Modal'
@@ -164,8 +164,9 @@ export function VaultRankPage({ data, updateData, prices }) {
         saverValue={saverValue} investorValue={investorValue} cryptoValue={cryptoValue}
         totalExpenses={totalExpenses} savingsRate={savingsRate} data={data}
         debtPctPaid={debtPctPaid} trueNetWorth={trueNetWorth} superValue={superValue}
-        liquidNetWorth={liquidNetWorth}
+        liquidNetWorth={liquidNetWorth} updateData={updateData}
       />
+      <MilestoneHistory log={data.achievementLog} />
     </div>
   )
 }
@@ -271,7 +272,7 @@ const TIER_META = {
   platinum: { label: '🏛️ PLATINUM', color: '#a87ef0' },
 }
 
-function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpenses, savingsRate, data, debtPctPaid, trueNetWorth, superValue, liquidNetWorth }) {
+function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpenses, savingsRate, data, debtPctPaid, trueNetWorth, superValue, liquidNetWorth, updateData }) {
   const [selected, setSelected] = useState(null)
 
   const ACHIEVEMENTS = [
@@ -298,6 +299,18 @@ function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpense
     // Platinum
     { id: 'unlock_the_vault', tier: 'platinum', icon: '🏛️', name: 'Unlock The Vault',  desc: 'Reach $1,000,000 liquid net worth',         flavour: "THE VAULT IS YOURS. A million liquid. Years of discipline, sacrifice, and compounding — all of it led here. You didn't just build wealth. You built a legacy.",       unlocked: liquidNetWorth >= 1000000 },
   ]
+
+  const unlockedKey = ACHIEVEMENTS.filter(a => a.unlocked).map(a => a.id).sort().join(',')
+  useEffect(() => {
+    const log = data.achievementLog ?? []
+    const loggedIds = new Set(log.map(e => e.id))
+    const newEntries = ACHIEVEMENTS
+      .filter(a => a.unlocked && !loggedIds.has(a.id))
+      .map(a => ({ id: a.id, name: a.name, tier: a.tier, icon: a.icon, unlockedAt: new Date().toISOString() }))
+    if (newEntries.length > 0) {
+      updateData('achievementLog', [...log, ...newEntries])
+    }
+  }, [unlockedKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const unlockedCount = ACHIEVEMENTS.filter(a => a.unlocked).length
   const unlockedByTier = (t) => ACHIEVEMENTS.filter(a => a.tier === t && a.unlocked).length
@@ -427,6 +440,66 @@ function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpense
             </span>
           </div>
         </Modal>
+      )}
+    </div>
+  )
+}
+
+function MilestoneHistory({ log }) {
+  const sorted = [...(log ?? [])].sort((a, b) => new Date(a.unlockedAt) - new Date(b.unlockedAt))
+
+  return (
+    <div className="card">
+      <div style={{ marginBottom: sorted.length ? 20 : 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)', marginBottom: 4 }}>Milestone History</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Your journey, recorded forever</div>
+      </div>
+
+      {sorted.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+          No milestones yet — keep building.
+        </div>
+      ) : (
+        <div style={{ position: 'relative', paddingLeft: 28 }}>
+          <div style={{
+            position: 'absolute', left: 8, top: 4, bottom: 4,
+            width: 2, background: 'rgba(240,165,0,0.25)', borderRadius: 1,
+          }} />
+          {sorted.map((entry, i) => {
+            const tierColor = TIER_META[entry.tier]?.color ?? 'var(--amber)'
+            const date = new Date(entry.unlockedAt)
+            const dateStr = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+            return (
+              <div key={entry.id} style={{
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                gap: 12, marginBottom: i < sorted.length - 1 ? 18 : 0, position: 'relative',
+              }}>
+                <div style={{
+                  position: 'absolute', left: -24, top: 5,
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: tierColor, flexShrink: 0,
+                  boxShadow: `0 0 6px ${tierColor}60`,
+                }} />
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>{entry.icon}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>{entry.name}</span>
+                  </div>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1,
+                    color: tierColor, background: `${tierColor}18`,
+                    padding: '2px 8px', borderRadius: 10,
+                  }}>
+                    {TIER_META[entry.tier]?.label ?? entry.tier}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0, whiteSpace: 'nowrap', marginTop: 2 }}>
+                  {dateStr}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       )}
     </div>
   )
