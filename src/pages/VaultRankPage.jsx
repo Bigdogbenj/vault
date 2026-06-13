@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react'
 import { VaultRank, useVaultRankInfo, RANK_MESSAGES, OVERALL_RANKS, GRADE_COLORS } from '../components/VaultRank'
+import { VaultRankMap } from '../components/VaultRankMap'
 import { resolvedAccountBalance, fmt } from '../utils'
 import { Modal } from '../components/Modal'
 import { useSnapshots } from '../hooks/useSnapshots'
@@ -139,6 +140,20 @@ export function VaultRankPage({ data, updateData, prices }) {
           </div>
         </div>
       </div>
+
+      {/* Animated Rank Map */}
+      <VaultRankMap
+        currentRank={rank.grade}
+        rankProgress={xpPct / 100}
+        tracks={[
+          { pct: Math.min(100, saverValue / 500) },
+          { pct: Math.min(100, investorValue / 750) },
+          { pct: Math.min(100, cryptoValue / 750) },
+          { pct: Math.min(100, savingsRate / 0.3) },
+          { pct: Math.min(100, superValue / 2500) },
+          { pct: Math.min(100, debtPctPaid) },
+        ]}
+      />
 
       {/* Rank Roadmap */}
       <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
