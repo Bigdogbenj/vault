@@ -99,10 +99,10 @@ export function Dashboard({ data, updateData, prices }) {
   const today = new Date().toISOString().slice(0, 10)
   const yesterdaySnap = dailySnapshots.find(s => s.date < today) ?? null
   const todayChange = yesterdaySnap && prices?.live
-    ? livePortfolio - (yesterdaySnap.crypto_value + yesterdaySnap.stocks_value + yesterdaySnap.etf_value)
+    ? totalBalance - yesterdaySnap.net_worth
     : null
-  const todayChangePct = todayChange != null && yesterdaySnap
-    ? (todayChange / Math.abs(yesterdaySnap.crypto_value + yesterdaySnap.stocks_value + yesterdaySnap.etf_value)) * 100
+  const todayChangePct = todayChange != null && yesterdaySnap?.net_worth
+    ? (todayChange / Math.abs(yesterdaySnap.net_worth)) * 100
     : null
 
   useEffect(() => {

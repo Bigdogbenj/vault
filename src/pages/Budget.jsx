@@ -8,15 +8,16 @@ const FREQUENCIES = ['weekly', 'fortnightly', 'monthly', 'quarterly']
 const FREQ_LABELS = { weekly: 'Weekly', fortnightly: 'Fortnightly', monthly: 'Monthly', quarterly: 'Quarterly' }
 const FREQ_BADGE = { weekly: 'badge-blue', fortnightly: 'badge-purple', monthly: 'badge-muted', quarterly: 'badge-amber' }
 
-const ALLOC_CATEGORIES = ['Crypto', 'Stocks', 'ETFs', 'Savings', 'Goals', 'Leisure', 'Other']
+const ALLOC_CATEGORIES = ['Crypto', 'Stocks', 'ETFs', 'Savings', 'Goals', 'Projects', 'Leisure', 'Other']
 const ALLOC_COLORS = {
-  Crypto:  '#f0a500',
-  Stocks:  '#5b9ef0',
-  ETFs:    '#4caf7d',
-  Savings: '#a87ef0',
-  Goals:   '#26c6da',
-  Leisure: '#6b7280',
-  Other:   '#9e9e9e',
+  Crypto:   '#f0a500',
+  Stocks:   '#5b9ef0',
+  ETFs:     '#4caf7d',
+  Savings:  '#a87ef0',
+  Goals:    '#26c6da',
+  Projects: '#e07b5b',
+  Leisure:  '#6b7280',
+  Other:    '#9e9e9e',
 }
 
 function IncomeModal({ item, onClose, onSave }) {
@@ -85,8 +86,9 @@ function AllocModal({ onClose, onSave, projects = [] }) {
 
   function handleCategoryChange(cat) {
     const firstProject = projects[0]
-    const projectId = cat === 'Goals' && firstProject ? firstProject.id : null
-    const label = cat === 'Goals' && firstProject ? firstProject.name : ''
+    const usesProject = cat === 'Goals' || cat === 'Projects'
+    const projectId = usesProject && firstProject ? firstProject.id : null
+    const label = usesProject && firstProject ? firstProject.name : ''
     setForm(f => ({ ...f, category: cat, projectId, label: f.label || label }))
   }
 
@@ -113,7 +115,7 @@ function AllocModal({ onClose, onSave, projects = [] }) {
           {ALLOC_CATEGORIES.map(c => <option key={c}>{c}</option>)}
         </select>
       </div>
-      {form.category === 'Goals' && projects.length > 0 && (
+      {(form.category === 'Goals' || form.category === 'Projects') && projects.length > 0 && (
         <div className="form-group">
           <label className="form-label">Project</label>
           <select className="form-select" value={form.projectId ?? ''} onChange={e => handleProjectChange(e.target.value)}>
@@ -252,6 +254,12 @@ export function Budget({ data, updateData, setPage }) {
             {monthlyAllocations.map(alloc => {
               const color = ALLOC_COLORS[alloc.category] || '#9e9e9e'
               const barPct = monthlyDisposable > 0 ? Math.min((alloc.amount / monthlyDisposable) * 100, 100) : 0
+              const linkedProject = (alloc.category === 'Projects' || alloc.category === 'Goals') && alloc.projectId
+                ? (data.projects ?? []).find(p => p.id === alloc.projectId)
+                : null
+              const projTotal = linkedProject ? linkedProject.items.reduce((s, i) => s + i.cost, 0) : 0
+              const projSpent = linkedProject ? linkedProject.items.filter(i => i.checked).reduce((s, i) => s + i.cost, 0) : 0
+              const projPct = projTotal > 0 ? Math.round((projSpent / projTotal) * 100) : 0
               return (
                 <div key={alloc.id}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -278,6 +286,20 @@ export function Budget({ data, updateData, setPage }) {
                   {monthlyDisposable > 0 && (
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
                       {barPct.toFixed(1)}% of disposable income
+                    </div>
+                  )}
+                  {linkedProject && projTotal > 0 && (
+                    <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--surface2)', borderRadius: 6, borderLeft: `3px solid ${color}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>Project progress</span>
+                        <span style={{ fontSize: 11, color, fontWeight: 700 }}>{projPct}% complete</span>
+                      </div>
+                      <div className="progress-bar" style={{ height: 3, borderRadius: 2 }}>
+                        <div className="progress-fill" style={{ width: `${projPct}%`, background: color, borderRadius: 2 }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                        {fmt(projSpent)} spent of {fmt(projTotal)} total
+                      </div>
                     </div>
                   )}
                 </div>
@@ -320,7 +342,7 @@ export function Budget({ data, updateData, setPage }) {
         )}
 
         {/* Schedules shortcut */}
-        <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
+        <div style={{ marginTop: 20, padding: '12px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--muted)' }}>
           <span>💡 Ready to automate? Set up recurring transfers in</span>
           <button
             onClick={() => setPage('schedules')}
