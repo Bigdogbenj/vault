@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { VaultRank, useVaultRankInfo, RANK_MESSAGES } from '../components/VaultRank'
+import { VaultRank, useVaultRankInfo, RANK_MESSAGES, OVERALL_RANKS, GRADE_COLORS } from '../components/VaultRank'
 import { resolvedAccountBalance, fmt } from '../utils'
 import { Modal } from '../components/Modal'
+import { useSnapshots } from '../hooks/useSnapshots'
 
 export function VaultRankPage({ data, updateData, prices }) {
   const totalDebt = (data.debts ?? []).reduce((s, d) => s + (d.remaining || 0), 0)
@@ -27,6 +28,13 @@ export function VaultRankPage({ data, updateData, prices }) {
     : 0
   const superBalance = data.accounts.find(a => a.type === 'Super')?.balance ?? 0
   const liquidNetWorth = totalBalance - superBalance
+
+  const snapshots = useSnapshots()
+  const daysActive = useMemo(() => {
+    if (!snapshots.length) return null
+    const first = new Date(snapshots[0].date)
+    return Math.floor((Date.now() - first.getTime()) / 86400000)
+  }, [snapshots])
 
   const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
   const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
@@ -114,15 +122,16 @@ export function VaultRankPage({ data, updateData, prices }) {
             </div>
           </div>
 
-          {/* 2×2 stat chips */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, flexShrink: 0 }}>
+          {/* 3×2 stat chips */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, flexShrink: 0 }}>
             {[
-              { icon: '💰', label: 'Net Worth',    value: fmt(trueNetWorth),           color: trueNetWorth >= 0 ? 'var(--text)' : 'var(--red)' },
-              { icon: '📈', label: 'Invested',     value: fmt(investedCostBasis),      color: 'var(--text)' },
+              { icon: '💰', label: 'Net Worth',    value: fmt(trueNetWorth),            color: trueNetWorth >= 0 ? 'var(--text)' : 'var(--red)' },
+              { icon: '📈', label: 'Invested',     value: fmt(investedCostBasis),       color: 'var(--text)' },
+              { icon: '⏱️', label: 'Days Active',  value: daysActive != null ? `${daysActive}d` : '—', color: 'var(--text)' },
               { icon: '💾', label: 'Savings Rate', value: `${savingsRate.toFixed(0)}%`, color: savingsRate >= 20 ? 'var(--green)' : savingsRate >= 10 ? 'var(--amber)' : 'var(--red)' },
-              { icon: '⚔️', label: 'Debt',         value: fmt(debtTotalRemain),         color: debtTotalRemain > 0 ? 'var(--red)' : 'var(--green)' },
+              { icon: '⚔️', label: 'Debt',         value: fmt(debtTotalRemain),          color: debtTotalRemain > 0 ? 'var(--red)' : 'var(--green)' },
             ].map(({ icon, label, value, color }) => (
-              <div key={label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 12px', minWidth: 110 }}>
+              <div key={label} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: '8px 12px', minWidth: 90 }}>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 3 }}>{icon} {label}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color }}>{value}</div>
               </div>
@@ -130,6 +139,9 @@ export function VaultRankPage({ data, updateData, prices }) {
           </div>
         </div>
       </div>
+
+      {/* Rank Roadmap */}
+      <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
 
       {/* Track cards + detail modal */}
       <VaultRank data={data} prices={prices} netWorth={trueNetWorth} />
@@ -154,6 +166,100 @@ export function VaultRankPage({ data, updateData, prices }) {
         debtPctPaid={debtPctPaid} trueNetWorth={trueNetWorth} superValue={superValue}
         liquidNetWorth={liquidNetWorth}
       />
+    </div>
+  )
+}
+
+const RANK_REQ = {
+  F: 'Starting rank',
+  D: 'Avg lvl 2 · +ve NW',
+  C: 'Avg lvl 3 · +ve NW',
+  B: 'Avg lvl 4 · $30k NW',
+  A: 'Avg lvl 5 · $80k NW',
+  S: 'Avg lvl 5 · $300k NW · all L5+',
+}
+
+function RankRoadmap({ rank, nextRank, avgLevel, trueNetWorth }) {
+  const currentIdx = OVERALL_RANKS.findIndex(r => r.grade === rank.grade)
+
+  return (
+    <div className="card">
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)', marginBottom: 20 }}>Rank Roadmap</div>
+
+      {/* Timeline */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 4 }}>
+        {OVERALL_RANKS.flatMap((r, i) => {
+          const isAchieved = i < currentIdx
+          const isCurrent = i === currentIdx
+          const color = GRADE_COLORS[r.grade]
+
+          const node = (
+            <div key={r.grade} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 84 }}>
+              <div style={{ height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {isCurrent && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: 1, whiteSpace: 'nowrap' }}>YOU ARE HERE</span>
+                )}
+              </div>
+              <div style={{
+                width: 44, height: 44, borderRadius: '50%',
+                background: isAchieved || isCurrent ? `${color}22` : 'var(--surface2)',
+                border: `2px solid ${isAchieved || isCurrent ? color : 'var(--border)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'Space Grotesk, sans-serif', fontWeight: 900, fontSize: 17,
+                color: isAchieved || isCurrent ? color : 'var(--muted)',
+                boxShadow: isCurrent ? `0 0 0 4px ${color}15, 0 0 14px ${color}30` : 'none',
+              }}>
+                {isAchieved ? '✓' : r.grade}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 12, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? color : isAchieved ? 'var(--text)' : 'var(--muted)', textAlign: 'center', lineHeight: 1.3 }}>
+                {r.title}
+              </div>
+              <div style={{ marginTop: 4, fontSize: 10, color: 'var(--muted)', textAlign: 'center', lineHeight: 1.4, padding: '0 4px' }}>
+                {RANK_REQ[r.grade]}
+              </div>
+            </div>
+          )
+
+          const connector = i < OVERALL_RANKS.length - 1 ? (
+            <div key={`c-${i}`} style={{ flex: 1, minWidth: 12, paddingTop: 41 }}>
+              <div style={{
+                height: 2,
+                background: isAchieved ? GRADE_COLORS[OVERALL_RANKS[i + 1].grade] : 'transparent',
+                borderTop: !isAchieved ? '2px dashed var(--border)' : 'none',
+                opacity: !isAchieved ? 0.4 : 1,
+              }} />
+            </div>
+          ) : null
+
+          return connector ? [node, connector] : [node]
+        })}
+      </div>
+
+      {/* Next rank callout */}
+      {nextRank && (() => {
+        const nc = GRADE_COLORS[nextRank.grade]
+        const reqs = []
+        if (nextRank.minAvg > avgLevel) reqs.push(`Avg level ${nextRank.minAvg} (currently ${avgLevel.toFixed(1)})`)
+        if (nextRank.minNW > trueNetWorth && nextRank.minNW > 0 && nextRank.minNW !== -Infinity)
+          reqs.push(`${fmt(nextRank.minNW)} net worth (currently ${fmt(trueNetWorth)})`)
+        if (nextRank.requireAllFive) reqs.push('All tracks at level 5+')
+        return (
+          <div style={{ marginTop: 20, padding: '14px 16px', borderRadius: 8, border: `1px solid ${nc}30`, background: `${nc}08` }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: nc, marginBottom: reqs.length ? 10 : 0 }}>
+              Next rank: {nextRank.grade} — {nextRank.title}
+            </div>
+            {reqs.map(req => (
+              <div key={req} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: nc, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: 'var(--text)' }}>{req}</span>
+              </div>
+            ))}
+            {reqs.length === 0 && (
+              <div style={{ fontSize: 12, color: 'var(--text)' }}>All requirements met — almost there!</div>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }

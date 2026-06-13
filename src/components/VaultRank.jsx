@@ -94,7 +94,7 @@ const TRACKS = [
   },
 ]
 
-const OVERALL_RANKS = [
+export const OVERALL_RANKS = [
   { grade: 'F', title: 'Broke Boy',     minAvg: 0, minNW: -Infinity },
   { grade: 'D', title: 'Scraping By',   minAvg: 2, minNW: 0 },
   { grade: 'C', title: 'Getting There', minAvg: 3, minNW: 0 },
@@ -538,7 +538,7 @@ function TrackCard({ track, value, level, onClick }) {
   )
 }
 
-const GRADE_COLORS = { F: '#6b7280', D: '#e05b5b', C: '#f0a500', B: '#5b9ef0', A: '#4caf7d', S: '#a87ef0' }
+export const GRADE_COLORS = { F: '#6b7280', D: '#e05b5b', C: '#f0a500', B: '#5b9ef0', A: '#4caf7d', S: '#a87ef0' }
 
 export function useVaultRankInfo(data, prices, netWorth) {
   const usdToAud = prices?.usdToAud ?? 1.55
