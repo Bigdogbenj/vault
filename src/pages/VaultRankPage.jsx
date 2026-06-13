@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { VaultRank, useVaultRankInfo, RANK_MESSAGES } from '../components/VaultRank'
 import { resolvedAccountBalance, fmt } from '../utils'
+import { Modal } from '../components/Modal'
 
 export function VaultRankPage({ data, updateData, prices }) {
   const totalDebt = (data.debts ?? []).reduce((s, d) => s + (d.remaining || 0), 0)
@@ -155,28 +156,31 @@ export function VaultRankPage({ data, updateData, prices }) {
 }
 
 function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpenses, savingsRate, data, debtPctPaid, trueNetWorth, superValue }) {
+  const [selected, setSelected] = useState(null)
+
   const ACHIEVEMENTS = [
-    { id: 'first_buffer',    icon: '🏦', name: 'First Buffer',         desc: 'Reach $1,000 in savings',           unlocked: saverValue >= 1000 },
-    { id: 'emergency_fund',  icon: '🛡️', name: 'Safety Net',           desc: 'Cover 3 months of expenses',         unlocked: saverValue >= totalExpenses * 3 },
-    { id: 'cash_fortress',   icon: '🏰', name: 'Cash Fortress',        desc: 'Reach $10,000 in liquid savings',    unlocked: saverValue >= 10000 },
-    { id: 'first_invest',    icon: '📈', name: 'First Position',       desc: 'Make your first investment',         unlocked: investorValue > 0 },
-    { id: 'five_k_portfolio',icon: '💼', name: 'Portfolio Builder',    desc: 'Reach $5,000 in stocks/ETFs',        unlocked: investorValue >= 5000 },
-    { id: 'crypto_entry',    icon: '🔮', name: 'Down the Rabbit Hole', desc: 'Hold any crypto',                   unlocked: cryptoValue > 0 },
-    { id: 'diamond_hands',   icon: '💎', name: 'Diamond Hands',        desc: 'Hold $6,000+ in crypto',            unlocked: cryptoValue >= 6000 },
-    { id: 'diversified',     icon: '🌐', name: 'Diversified',          desc: 'Hold stocks, ETFs and crypto',      unlocked: investorValue > 0 && cryptoValue > 0 },
-    { id: 'budget_setup',    icon: '📋', name: 'Budget Boss',          desc: 'Set up income and expenses',        unlocked: data.budget.income.length > 0 && data.budget.expenses.length > 0 },
-    { id: 'first_goal',      icon: '🎯', name: 'Goal Setter',          desc: 'Create your first goal',            unlocked: data.goals.length > 0 },
-    { id: 'goal_crusher',    icon: '🏆', name: 'Goal Crusher',         desc: 'Complete a goal',                   unlocked: data.goals.some(g => g.completed) },
-    { id: 'savings_rate_20', icon: '💹', name: 'Saver Mode',           desc: 'Hit a 20% savings rate',            unlocked: savingsRate >= 20 },
-    { id: 'savings_rate_40', icon: '🚀', name: 'Savings Machine',      desc: 'Hit a 40% savings rate',            unlocked: savingsRate >= 40 },
-    { id: 'debt_aware',      icon: '⚔️', name: 'Debt Aware',           desc: 'Track your debts in Vault',         unlocked: (data.debts?.length ?? 0) > 0 },
-    { id: 'debt_10',         icon: '🗡️', name: 'Chipping Away',        desc: 'Pay off 10% of total debt',         unlocked: debtPctPaid >= 10 },
-    { id: 'nw_positive',     icon: '✨', name: 'In The Green',         desc: 'Achieve positive true net worth',   unlocked: trueNetWorth > 0 },
-    { id: 'nw_10k',          icon: '💰', name: 'Five Figures',         desc: 'Reach $10,000 net worth',           unlocked: trueNetWorth >= 10000 },
-    { id: 'super_starter',   icon: '🌱', name: 'Super Starter',        desc: 'Have super balance over $10,000',   unlocked: superValue >= 10000 },
+    { id: 'first_buffer',    icon: '🏦', name: 'First Buffer',         desc: 'Reach $1,000 in savings',              flavour: "The first $1,000 is the hardest. You've crossed the line most people never reach.",                 unlocked: saverValue >= 1000 },
+    { id: 'emergency_fund',  icon: '🛡️', name: 'Safety Net',           desc: 'Cover 3 months of expenses',            flavour: "Three months of runway. One surprise won't break you now.",                                       unlocked: saverValue >= totalExpenses * 3 },
+    { id: 'cash_fortress',   icon: '🏰', name: 'Cash Fortress',        desc: 'Reach $10,000 in liquid savings',       flavour: "Ten grand liquid. Sleep easy — you're covered.",                                                  unlocked: saverValue >= 10000 },
+    { id: 'first_invest',    icon: '📈', name: 'First Position',       desc: 'Make your first investment',            flavour: "Your money is working while you sleep. Welcome to the other side.",                              unlocked: investorValue > 0 },
+    { id: 'five_k_portfolio',icon: '💼', name: 'Portfolio Builder',    desc: 'Reach $10,000 in stocks/ETFs',          flavour: "Five figures in the market. Compounding has entered the chat.",                                   unlocked: investorValue >= 10000 },
+    { id: 'crypto_entry',    icon: '🔮', name: 'Down the Rabbit Hole', desc: 'Hold any crypto',                       flavour: "Down the rabbit hole. There's no going back now.",                                               unlocked: cryptoValue > 0 },
+    { id: 'diamond_hands',   icon: '💎', name: 'Diamond Hands',        desc: 'Hold $10,000+ in crypto',               flavour: "You held through the storm. Most paper hands are gone. You're still here.",                      unlocked: cryptoValue >= 10000 },
+    { id: 'diversified',     icon: '🌐', name: 'Diversified',          desc: 'Hold $1,000+ in stocks/ETFs and crypto',flavour: "Spread across asset classes like a true wealth builder.",                                        unlocked: investorValue >= 1000 && cryptoValue >= 1000 },
+    { id: 'budget_setup',    icon: '📋', name: 'Budget Boss',          desc: 'Set up income and expenses',            flavour: "You know your numbers. That alone puts you ahead of most people.",                               unlocked: data.budget.income.length > 0 && data.budget.expenses.length > 0 },
+    { id: 'first_goal',      icon: '🎯', name: 'Goal Setter',          desc: 'Create your first goal',                flavour: "A goal without a plan is just a wish. You have both.",                                           unlocked: data.goals.length > 0 },
+    { id: 'goal_crusher',    icon: '🏆', name: 'Goal Crusher',         desc: 'Complete a goal',                       flavour: "Talk is cheap. You actually did it.",                                                            unlocked: data.goals.some(g => g.completed) },
+    { id: 'savings_rate_20', icon: '💹', name: 'Saver Mode',           desc: 'Hit a 20% savings rate',                flavour: "One in five dollars saved. The wealth gap starts here.",                                         unlocked: savingsRate >= 20 },
+    { id: 'savings_rate_40', icon: '🚀', name: 'Savings Machine',      desc: 'Hit a 40% savings rate',                flavour: "Nearly half your income retained. This is how wealth compounds fast.",                           unlocked: savingsRate >= 40 },
+    { id: 'debt_aware',      icon: '⚔️', name: 'Debt Aware',           desc: 'Track your debts in Vault',             flavour: "Naming the enemy is how you beat it.",                                                          unlocked: (data.debts?.length ?? 0) > 0 },
+    { id: 'debt_10',         icon: '🗡️', name: 'Chipping Away',        desc: 'Pay off 10% of total debt',             flavour: "Ten percent down. The avalanche is picking up speed.",                                          unlocked: debtPctPaid >= 10 },
+    { id: 'nw_positive',     icon: '✨', name: 'In The Green',         desc: 'Achieve positive true net worth',        flavour: "Assets exceed liabilities. You're building, not sinking.",                                      unlocked: trueNetWorth > 0 },
+    { id: 'nw_10k',          icon: '💰', name: 'Five Figures',         desc: 'Reach $10,000 net worth',               flavour: "Five figures of net worth. The foundation is real.",                                            unlocked: trueNetWorth >= 10000 },
+    { id: 'super_starter',   icon: '🌱', name: 'Super Starter',        desc: 'Have super balance over $10,000',       flavour: "Future you is already grateful. The seed is planted.",                                          unlocked: superValue >= 10000 },
   ]
 
   const unlockedCount = ACHIEVEMENTS.filter(a => a.unlocked).length
+  const selectedAch = selected ? ACHIEVEMENTS.find(a => a.id === selected) : null
 
   return (
     <div className="card">
@@ -184,11 +188,13 @@ function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpense
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)' }}>Achievements</div>
         <div style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 700 }}>{unlockedCount} / {ACHIEVEMENTS.length} unlocked</div>
       </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
         {ACHIEVEMENTS.map(({ id, icon, name, desc, unlocked }) => (
           <div
             key={id}
-            title={unlocked ? name : 'Keep going...'}
+            title={unlocked ? undefined : desc}
+            onClick={() => { if (unlocked) setSelected(id) }}
             style={{
               background: 'var(--surface2)',
               borderRadius: 10,
@@ -198,7 +204,7 @@ function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpense
               opacity: unlocked ? 1 : 0.35,
               filter: unlocked ? 'none' : 'grayscale(1)',
               transition: 'box-shadow 0.18s, transform 0.18s',
-              cursor: 'default',
+              cursor: unlocked ? 'pointer' : 'default',
             }}
             onMouseEnter={e => {
               if (unlocked) {
@@ -217,6 +223,22 @@ function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpense
           </div>
         ))}
       </div>
+
+      {selectedAch && (
+        <Modal title="" onClose={() => setSelected(null)} size="modal-sm">
+          <div style={{ textAlign: 'center', paddingBottom: 8 }}>
+            <div style={{ fontSize: 48, marginBottom: 12, lineHeight: 1 }}>{selectedAch.icon}</div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 800, marginBottom: 6 }}>{selectedAch.name}</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{selectedAch.desc}</div>
+            <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: 20, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 8 }}>
+              "{selectedAch.flavour}"
+            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--green)', background: 'rgba(76,175,125,0.12)', padding: '5px 14px', borderRadius: 20 }}>
+              ✓ Unlocked
+            </span>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
