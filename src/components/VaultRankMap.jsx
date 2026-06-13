@@ -129,16 +129,16 @@ const fmt = (n) => {
   return n < 0 ? `-${str}` : str
 }
 
-function Tile({ label, value, sub, color }) {
+function Tile({ label, value, sub, color, labelSz = 8, valueSz = 14 }) {
   return (
     <div style={{
       background: `${color}0f`,
       border: `1px solid ${color}2e`,
-      borderRadius: 10, padding: '7px 9px',
+      borderRadius: 10, padding: '7px 9px', flex: 1, minWidth: 0,
     }}>
-      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color, opacity: 0.65, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 700, color, lineHeight: 1.2, marginBottom: 2 }}>{value}</div>
-      <div style={{ fontSize: 7, color, opacity: 0.5 }}>{sub}</div>
+      <div style={{ fontSize: labelSz, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color, opacity: 0.65, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: valueSz, fontWeight: 700, color, lineHeight: 1.2, marginBottom: 2 }}>{value}</div>
+      <div style={{ fontSize: Math.max(7, labelSz - 3), color, opacity: 0.5 }}>{sub}</div>
     </div>
   )
 }
@@ -294,35 +294,53 @@ export function VaultRankMap({
         ))}
       </div>
 
-      {/* ── 3-COLUMN GRID ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 130px', gap: 8, alignItems: 'start' }}>
+      {/* ── STATS + MAP ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '0 16px' }}>
 
-        {/* LEFT — Core + Utility */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24', marginBottom: 5, paddingLeft: 2 }}>Core</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#fbbf24" label="Net Worth"   value={fmt(netWorth)}                                   sub="net worth"      />
-              <Tile color="#fbbf24" label="Days Active" value={daysActive != null ? `${daysActive}d` : '—'}     sub="days active"    />
-              <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`}                  sub="income retained"/>
+        {/* Row 1 — Core + Utility */}
+        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24', marginBottom: 5 }}>Core</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                  sub="net worth"       labelSz={11} valueSz={16} />
+              <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`}  sub="income retained" labelSz={11} valueSz={16} />
             </div>
           </div>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginBottom: 5, paddingLeft: 2 }}>Utility</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
-              <Tile color="#60a5fa" label="Yield"     value={`${Math.round(yieldPct)}%`}                        sub="income retained"/>
-              <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`}                   sub="vault mastery"  />
+          <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', alignSelf: 'stretch' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginBottom: 5 }}>Utility</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" labelSz={11} valueSz={16} />
+              <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`}  sub="vault mastery"   labelSz={11} valueSz={16} />
             </div>
           </div>
         </div>
 
-        {/* CENTER — scrollable snake map */}
-        <div style={{ position: 'relative', height: 420 }}>
+        {/* Row 2 — Offense + Defence */}
+        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80', marginBottom: 5 }}>Offense</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Tile color="#4ade80" label="Attack"  value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  labelSz={11} valueSz={16} />
+              <Tile color="#4ade80" label="Power"   value={fmt(powerTotal)}             sub="total portfolio" labelSz={11} valueSz={16} />
+            </div>
+          </div>
+          <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', alignSelf: 'stretch' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginBottom: 5 }}>Defence</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <Tile color="#f87171" label="Debt"    value={fmt(debt)}                    sub="total debt"     labelSz={11} valueSz={16} />
+              <Tile color="#f87171" label="Defence" value={`${Math.round(defencePct)}%`} sub="emergency fund" labelSz={11} valueSz={16} />
+            </div>
+          </div>
+        </div>
+
+        {/* Centre map */}
+        <div style={{ position: 'relative', height: 420, width: 220, margin: '0 auto', flexShrink: 0 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
-          <div ref={scrollRef} className="map-scroll" style={{ height: '100%', width: '180px', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <svg width="180" height="1100" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
+          <div ref={scrollRef} className="map-scroll" style={{ height: '100%', width: '220px', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <svg width="220" height="1100" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -422,25 +440,6 @@ export function VaultRankMap({
           </div>
         </div>
 
-        {/* RIGHT — Offense + Defence */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80', marginBottom: 5, paddingLeft: 2 }}>Offense</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
-              <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}              sub="total portfolio" />
-              <Tile color="#4ade80" label="Invested" value={fmt(invested)}                sub="cost basis"      />
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginBottom: 5, paddingLeft: 2 }}>Defence</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#f87171" label="Debt"       value={fmt(debt)}                      sub="total debt"    />
-              <Tile color="#f87171" label="Defence"    value={`${Math.round(defencePct)}%`}   sub="emergency fund"/>
-              <Tile color="#f87171" label="Debt Ratio" value={`${Math.round(debtRatio)}%`}    sub="debt / assets" />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ── DETAIL CARD ── */}
