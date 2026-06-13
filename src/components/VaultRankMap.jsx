@@ -106,20 +106,20 @@ const RANK_REQ_SHORT = {
 }
 
 const NODES = {
-  F: { x: 50,  y: 930 },
-  D: { x: 150, y: 760 },
-  C: { x: 50,  y: 590 },
-  B: { x: 150, y: 420 },
-  A: { x: 50,  y: 250 },
-  S: { x: 150, y: 80  },
+  F: { x: 20, y: 930 },
+  D: { x: 80, y: 760 },
+  C: { x: 20, y: 590 },
+  B: { x: 80, y: 420 },
+  A: { x: 20, y: 250 },
+  S: { x: 80, y: 80  },
 }
 
 const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 100, cy: 845, color: RANK_COLORS.D },
-  { from: 'D', to: 'C', cx: 100, cy: 675, color: RANK_COLORS.C },
-  { from: 'C', to: 'B', cx: 100, cy: 505, color: RANK_COLORS.B },
-  { from: 'B', to: 'A', cx: 100, cy: 335, color: RANK_COLORS.A },
-  { from: 'A', to: 'S', cx: 100, cy: 165, color: RANK_COLORS.S },
+  { from: 'F', to: 'D', cx: 50, cy: 845, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 50, cy: 675, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 50, cy: 505, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 50, cy: 335, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 50, cy: 165, color: RANK_COLORS.S },
 ]
 
 const fmt = (n) => {
@@ -322,7 +322,7 @@ export function VaultRankMap({
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div ref={scrollRef} className="map-scroll" style={{ height: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <svg width="100%" viewBox="0 0 200 1100" xmlns="http://www.w3.org/2000/svg">
+            <svg width="100%" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -361,8 +361,8 @@ export function VaultRankMap({
                 const color = RANK_COLORS[grade]
                 const state = nodeState(grade)
                 const isSelected = selectedRank === grade
-                const isLeft = x < 100
-                const labelX = isLeft ? 84 : 116
+                const isLeft = x < 50
+                const labelX = isLeft ? 37 : 63
                 const anchor = isLeft ? 'start' : 'end'
                 const nameOp = state === 'current' ? 0.9 : state === 'next' ? 0.55 : state === 'done' ? 0.45 : 0.22
 
@@ -370,39 +370,39 @@ export function VaultRankMap({
                   <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
                     {state === 'current' && (
                       <>
-                        <circle cx={x} cy={y} r="28" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
-                          <animate attributeName="r" values="28;44;44" dur="2.5s" repeatCount="indefinite" />
+                        <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
+                          <animate attributeName="r" values="14;22;22" dur="2.5s" repeatCount="indefinite" />
                           <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
                         </circle>
-                        <circle cx={x} cy={y} r="28" fill="none" stroke={color} strokeWidth="1" opacity="0">
-                          <animate attributeName="r" values="28;52;52" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                        <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1" opacity="0">
+                          <animate attributeName="r" values="14;26;26" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
                           <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
                         </circle>
                       </>
                     )}
                     {state === 'next' && (
-                      <circle cx={x} cy={y} r="34" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
+                      <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
                     )}
                     {isSelected && state !== 'current' && (
-                      <circle cx={x} cy={y} r="34" fill="none" stroke={color} strokeWidth="1.5"
+                      <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1.5"
                         strokeDasharray="4 3" opacity="0.5" />
                     )}
                     {state === 'done' && (
-                      <circle cx={x} cy={y} r="28" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
+                      <circle cx={x} cy={y} r="14" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
                     )}
                     {state === 'current' && (
-                      <circle cx={x} cy={y} r="28" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
+                      <circle cx={x} cy={y} r="14" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
                         <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
                       </circle>
                     )}
                     {state === 'next' && (
-                      <circle cx={x} cy={y} r="28" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
+                      <circle cx={x} cy={y} r="14" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
                     )}
                     {state === 'locked' && (
-                      <circle cx={x} cy={y} r="28" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
+                      <circle cx={x} cy={y} r="14" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
                     )}
                     <text x={x} y={y} textAnchor="middle" dominantBaseline="middle"
-                      fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="16" fill={color}
+                      fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="8" fill={color}
                       opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>
                       {grade}
                     </text>
