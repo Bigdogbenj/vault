@@ -771,6 +771,7 @@ export function Schedules({ data, updateData, prices }) {
                       <th>From</th>
                       <th>To</th>
                       <th style={{ textAlign: 'right' }}>Amount</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -785,6 +786,9 @@ export function Schedules({ data, updateData, prices }) {
                           <td style={{ color: 'var(--muted)', fontSize: 13 }}>{entry.toLabel}</td>
                           <td style={{ textAlign: 'right', fontWeight: 700, color: entry.type === 'income' ? 'var(--green)' : entry.type === 'expense' ? '#e05b5b' : 'var(--text)', whiteSpace: 'nowrap' }}>
                             {entry.type === 'income' ? '+' : entry.type === 'expense' ? '-' : ''}{fmt(entry.amount)}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button className="icon-btn danger" onClick={() => updateData('transferLog', transferLog.filter(e => e.id !== entry.id))} title="Delete">✕</button>
                           </td>
                         </tr>
                       )
