@@ -295,7 +295,7 @@ export function VaultRankMap({
       </div>
 
       {/* ── STATS + MAP ── */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, width: '100%' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, justifyContent: 'center' }}>
 
         {/* LEFT COLUMN — Core + Utility */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 130, flexShrink: 0 }}>
@@ -316,7 +316,7 @@ export function VaultRankMap({
         </div>
 
         {/* CENTRE — Scrollable map */}
-        <div style={{ flex: 1, position: 'relative', height: 420 }}>
+        <div style={{ width: 200, flexShrink: 0, position: 'relative', height: 420 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div ref={scrollRef} style={{ height: '100%', width: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
