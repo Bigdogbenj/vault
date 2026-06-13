@@ -423,6 +423,25 @@ export function Portfolio({ data, updateData, prices }) {
   const etfTotal = useMemo(() => data.etfs.reduce((s, e) => s + e.units * (prices?.etfs?.[e.ticker]?.aud ?? 0), 0), [data.etfs, prices])
   const cryptoTotal = useMemo(() => data.crypto.reduce((s, c) => s + c.amount * (prices?.crypto?.[c.coinId]?.aud ?? 0), 0), [data.crypto, prices])
 
+  const roiData = useMemo(() => {
+    const cryptoCostBasis = data.crypto.reduce((s, c) => s + c.amount * c.avgCost, 0)
+    const cryptoROI = cryptoTotal - cryptoCostBasis
+    const cryptoROIPct = cryptoCostBasis > 0 ? (cryptoROI / cryptoCostBasis) * 100 : null
+
+    const stockCostBasis = data.stocks.reduce((s, st) => s + st.shares * st.avgCost * usdToAud, 0)
+    const stockROI = stockTotal - stockCostBasis
+    const stockROIPct = stockCostBasis > 0 ? (stockROI / stockCostBasis) * 100 : null
+
+    const etfCostBasis = data.etfs.reduce((s, e) => {
+      const cost = e.market === 'US' ? e.avgCost * usdToAud : e.avgCost
+      return s + e.units * cost
+    }, 0)
+    const etfROI = etfTotal - etfCostBasis
+    const etfROIPct = etfCostBasis > 0 ? (etfROI / etfCostBasis) * 100 : null
+
+    return { cryptoROI, cryptoROIPct, stockROI, stockROIPct, etfROI, etfROIPct }
+  }, [data.crypto, data.stocks, data.etfs, cryptoTotal, stockTotal, etfTotal, usdToAud])
+
   const barData = [
     { name: 'Stocks', value: Math.round(stockTotal) },
     { name: 'ETFs', value: Math.round(etfTotal) },
@@ -602,6 +621,27 @@ export function Portfolio({ data, updateData, prices }) {
           <div className="stat-label">Crypto</div>
           <div className="stat-value text-amber">{fmt(cryptoTotal)}</div>
         </div>
+      </div>
+
+      <div className="grid-3">
+        {[
+          { label: 'Stock Return',  roi: roiData.stockROI,  pct: roiData.stockROIPct  },
+          { label: 'ETF Return',    roi: roiData.etfROI,    pct: roiData.etfROIPct    },
+          { label: 'Crypto Return', roi: roiData.cryptoROI, pct: roiData.cryptoROIPct },
+        ].map(({ label, roi, pct }) => {
+          const color = roi >= 0 ? 'var(--green)' : 'var(--red)'
+          const sign = roi >= 0 ? '+' : ''
+          return (
+            <div className="stat-card" key={label}>
+              <div className="stat-label">{label}</div>
+              <div className="stat-value" style={{ color, fontSize: 24 }}>{sign}{fmt(roi)}</div>
+              <div className="stat-sub" style={{ color }}>
+                {pct != null ? `${sign}${pct.toFixed(2)}%` : '—'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>vs cost basis</div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="card">
