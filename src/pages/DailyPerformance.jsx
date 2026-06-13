@@ -247,7 +247,7 @@ export function DailyPerformance({ data, prices }) {
             <BarChart data={barData} margin={{ top: 8, right: 16, bottom: 0, left: 16 }} style={{ background: 'transparent' }}>
               <XAxis dataKey="name" tick={{ fill: 'var(--muted)', fontSize: 12 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v / 1000).toFixed(1)}k`} width={50} />
-              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={v => [`${v >= 0 ? '+' : ''}${fmt(v)}`, 'Change']} />
+              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} labelStyle={{ color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} formatter={v => [`${v >= 0 ? '+' : ''}${fmt(v)}`, 'Change']} />
               <Bar dataKey="change" radius={[4, 4, 0, 0]} background={{ fill: 'transparent' }}>
                 {barData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Bar>
