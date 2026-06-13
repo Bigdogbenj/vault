@@ -16,6 +16,15 @@ export function VaultRankPage({ data, updateData, prices }) {
     totalExpenses, debtTotalRemain, investedCostBasis,
   } = useVaultRankInfo(data, prices, trueNetWorth)
 
+  const superValue = useMemo(
+    () => data.accounts.filter(a => a.type === 'Super').reduce((s, a) => s + (a.balance ?? 0), 0),
+    [data.accounts]
+  )
+  const debtTotalOrig = (data.debts ?? []).reduce((s, d) => s + (d.originalAmount || 0), 0)
+  const debtPctPaid = debtTotalOrig > 0
+    ? Math.min(100, ((debtTotalOrig - debtTotalRemain) / debtTotalOrig) * 100)
+    : 0
+
   const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
   const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
   const portfolioTotal = investorValue + cryptoValue
@@ -134,6 +143,79 @@ export function VaultRankPage({ data, updateData, prices }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <AchievementsWall
+        saverValue={saverValue} investorValue={investorValue} cryptoValue={cryptoValue}
+        totalExpenses={totalExpenses} savingsRate={savingsRate} data={data}
+        debtPctPaid={debtPctPaid} trueNetWorth={trueNetWorth} superValue={superValue}
+      />
+    </div>
+  )
+}
+
+function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpenses, savingsRate, data, debtPctPaid, trueNetWorth, superValue }) {
+  const ACHIEVEMENTS = [
+    { id: 'first_buffer',    icon: '🏦', name: 'First Buffer',         desc: 'Reach $1,000 in savings',           unlocked: saverValue >= 1000 },
+    { id: 'emergency_fund',  icon: '🛡️', name: 'Safety Net',           desc: 'Cover 3 months of expenses',         unlocked: saverValue >= totalExpenses * 3 },
+    { id: 'cash_fortress',   icon: '🏰', name: 'Cash Fortress',        desc: 'Reach $10,000 in liquid savings',    unlocked: saverValue >= 10000 },
+    { id: 'first_invest',    icon: '📈', name: 'First Position',       desc: 'Make your first investment',         unlocked: investorValue > 0 },
+    { id: 'five_k_portfolio',icon: '💼', name: 'Portfolio Builder',    desc: 'Reach $5,000 in stocks/ETFs',        unlocked: investorValue >= 5000 },
+    { id: 'crypto_entry',    icon: '🔮', name: 'Down the Rabbit Hole', desc: 'Hold any crypto',                   unlocked: cryptoValue > 0 },
+    { id: 'diamond_hands',   icon: '💎', name: 'Diamond Hands',        desc: 'Hold $6,000+ in crypto',            unlocked: cryptoValue >= 6000 },
+    { id: 'diversified',     icon: '🌐', name: 'Diversified',          desc: 'Hold stocks, ETFs and crypto',      unlocked: investorValue > 0 && cryptoValue > 0 },
+    { id: 'budget_setup',    icon: '📋', name: 'Budget Boss',          desc: 'Set up income and expenses',        unlocked: data.budget.income.length > 0 && data.budget.expenses.length > 0 },
+    { id: 'first_goal',      icon: '🎯', name: 'Goal Setter',          desc: 'Create your first goal',            unlocked: data.goals.length > 0 },
+    { id: 'goal_crusher',    icon: '🏆', name: 'Goal Crusher',         desc: 'Complete a goal',                   unlocked: data.goals.some(g => g.completed) },
+    { id: 'savings_rate_20', icon: '💹', name: 'Saver Mode',           desc: 'Hit a 20% savings rate',            unlocked: savingsRate >= 20 },
+    { id: 'savings_rate_40', icon: '🚀', name: 'Savings Machine',      desc: 'Hit a 40% savings rate',            unlocked: savingsRate >= 40 },
+    { id: 'debt_aware',      icon: '⚔️', name: 'Debt Aware',           desc: 'Track your debts in Vault',         unlocked: (data.debts?.length ?? 0) > 0 },
+    { id: 'debt_10',         icon: '🗡️', name: 'Chipping Away',        desc: 'Pay off 10% of total debt',         unlocked: debtPctPaid >= 10 },
+    { id: 'nw_positive',     icon: '✨', name: 'In The Green',         desc: 'Achieve positive true net worth',   unlocked: trueNetWorth > 0 },
+    { id: 'nw_10k',          icon: '💰', name: 'Five Figures',         desc: 'Reach $10,000 net worth',           unlocked: trueNetWorth >= 10000 },
+    { id: 'super_starter',   icon: '🌱', name: 'Super Starter',        desc: 'Have super balance over $10,000',   unlocked: superValue >= 10000 },
+  ]
+
+  const unlockedCount = ACHIEVEMENTS.filter(a => a.unlocked).length
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)' }}>Achievements</div>
+        <div style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 700 }}>{unlockedCount} / {ACHIEVEMENTS.length} unlocked</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+        {ACHIEVEMENTS.map(({ id, icon, name, desc, unlocked }) => (
+          <div
+            key={id}
+            title={unlocked ? name : 'Keep going...'}
+            style={{
+              background: 'var(--surface2)',
+              borderRadius: 10,
+              padding: '14px 12px',
+              textAlign: 'center',
+              border: unlocked ? '1px solid rgba(240,165,0,0.3)' : '1px solid var(--border)',
+              opacity: unlocked ? 1 : 0.35,
+              filter: unlocked ? 'none' : 'grayscale(1)',
+              transition: 'box-shadow 0.18s, transform 0.18s',
+              cursor: 'default',
+            }}
+            onMouseEnter={e => {
+              if (unlocked) {
+                e.currentTarget.style.boxShadow = '0 0 16px rgba(240,165,0,0.2)'
+                e.currentTarget.style.transform = 'translateY(-2px)'
+              }
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = ''
+              e.currentTarget.style.transform = ''
+            }}
+          >
+            <div style={{ fontSize: 28, marginBottom: 8, lineHeight: 1 }}>{icon}</div>
+            <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{name}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{desc}</div>
+          </div>
+        ))}
       </div>
     </div>
   )
