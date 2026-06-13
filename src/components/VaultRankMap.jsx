@@ -295,52 +295,32 @@ export function VaultRankMap({
       </div>
 
       {/* ── STATS + MAP ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '0 16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, width: '100%' }}>
 
-        {/* Row 1 — Core + Utility */}
-        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-          <div style={{ flex: 1 }}>
+        {/* LEFT COLUMN — Core + Utility */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 130, flexShrink: 0 }}>
+          <div>
             <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24', marginBottom: 5 }}>Core</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                  sub="net worth"       labelSz={11} valueSz={16} />
-              <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`}  sub="income retained" labelSz={11} valueSz={16} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                 sub="net worth"       />
+              <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`} sub="income retained" />
             </div>
           </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', alignSelf: 'stretch' }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginBottom: 5 }}>Utility</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" labelSz={11} valueSz={16} />
-              <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`}  sub="vault mastery"   labelSz={11} valueSz={16} />
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2 — Offense + Defence */}
-        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80', marginBottom: 5 }}>Offense</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Tile color="#4ade80" label="Attack"  value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  labelSz={11} valueSz={16} />
-              <Tile color="#4ade80" label="Power"   value={fmt(powerTotal)}             sub="total portfolio" labelSz={11} valueSz={16} />
-            </div>
-          </div>
-          <div style={{ width: 1, background: 'rgba(255,255,255,0.08)', alignSelf: 'stretch' }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginBottom: 5 }}>Defence</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <Tile color="#f87171" label="Debt"    value={fmt(debt)}                    sub="total debt"     labelSz={11} valueSz={16} />
-              <Tile color="#f87171" label="Defence" value={`${Math.round(defencePct)}%`} sub="emergency fund" labelSz={11} valueSz={16} />
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginBottom: 5, marginTop: 4 }}>Utility</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
+              <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`} sub="vault mastery"   />
             </div>
           </div>
         </div>
 
-        {/* Centre map */}
-        <div style={{ position: 'relative', height: 420, width: 220, margin: '0 auto', flexShrink: 0 }}>
+        {/* CENTRE — Scrollable map */}
+        <div style={{ flex: 1, position: 'relative', height: 420 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
-          <div ref={scrollRef} className="map-scroll" style={{ height: '100%', width: '220px', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <svg width="220" height="1100" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
+          <div ref={scrollRef} style={{ height: '100%', width: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <svg width="100%" height="1100" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -437,6 +417,26 @@ export function VaultRankMap({
                 )
               })}
             </svg>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN — Offense + Defence */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 130, flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80', marginBottom: 5 }}>Offense</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
+              <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}             sub="total portfolio" />
+              <Tile color="#4ade80" label="Invested" value={fmt(invested)}               sub="cost basis"      />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginBottom: 5, marginTop: 4 }}>Defence</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <Tile color="#f87171" label="Debt"       value={fmt(debt)}                    sub="total debt"     />
+              <Tile color="#f87171" label="Defence"    value={`${Math.round(defencePct)}%`} sub="emergency fund" />
+              <Tile color="#f87171" label="Debt Ratio" value={`${Math.round(debtRatio)}%`}  sub="debt vs assets" />
+            </div>
           </div>
         </div>
 
