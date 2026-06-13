@@ -321,8 +321,8 @@ export function VaultRankMap({
         <div style={{ position: 'relative', height: 420 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
-          <div ref={scrollRef} className="map-scroll" style={{ height: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <svg width="100%" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
+          <div ref={scrollRef} className="map-scroll" style={{ height: '100%', width: '180px', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <svg width="180" height="1100" viewBox="0 0 100 1100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
