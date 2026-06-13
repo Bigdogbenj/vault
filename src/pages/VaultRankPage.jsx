@@ -25,6 +25,8 @@ export function VaultRankPage({ data, updateData, prices }) {
   const debtPctPaid = debtTotalOrig > 0
     ? Math.min(100, ((debtTotalOrig - debtTotalRemain) / debtTotalOrig) * 100)
     : 0
+  const superBalance = data.accounts.find(a => a.type === 'Super')?.balance ?? 0
+  const liquidNetWorth = totalBalance - superBalance
 
   const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
   const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
@@ -150,84 +152,165 @@ export function VaultRankPage({ data, updateData, prices }) {
         saverValue={saverValue} investorValue={investorValue} cryptoValue={cryptoValue}
         totalExpenses={totalExpenses} savingsRate={savingsRate} data={data}
         debtPctPaid={debtPctPaid} trueNetWorth={trueNetWorth} superValue={superValue}
+        liquidNetWorth={liquidNetWorth}
       />
     </div>
   )
 }
 
-function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpenses, savingsRate, data, debtPctPaid, trueNetWorth, superValue }) {
+const TIER_META = {
+  bronze:   { label: '🥉 BRONZE',   color: '#cd7f32' },
+  silver:   { label: '🥈 SILVER',   color: '#b0b8c8' },
+  gold:     { label: '🥇 GOLD',     color: '#f0a500' },
+  platinum: { label: '🏛️ PLATINUM', color: '#a87ef0' },
+}
+
+function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpenses, savingsRate, data, debtPctPaid, trueNetWorth, superValue, liquidNetWorth }) {
   const [selected, setSelected] = useState(null)
 
   const ACHIEVEMENTS = [
-    { id: 'first_buffer',    icon: '🏦', name: 'First Buffer',         desc: 'Reach $1,000 in savings',              flavour: "The first $1,000 is the hardest. You've crossed the line most people never reach.",                 unlocked: saverValue >= 1000 },
-    { id: 'emergency_fund',  icon: '🛡️', name: 'Safety Net',           desc: 'Cover 3 months of expenses',            flavour: "Three months of runway. One surprise won't break you now.",                                       unlocked: saverValue >= totalExpenses * 3 },
-    { id: 'cash_fortress',   icon: '🏰', name: 'Cash Fortress',        desc: 'Reach $10,000 in liquid savings',       flavour: "Ten grand liquid. Sleep easy — you're covered.",                                                  unlocked: saverValue >= 10000 },
-    { id: 'first_invest',    icon: '📈', name: 'First Position',       desc: 'Make your first investment',            flavour: "Your money is working while you sleep. Welcome to the other side.",                              unlocked: investorValue > 0 },
-    { id: 'five_k_portfolio',icon: '💼', name: 'Portfolio Builder',    desc: 'Reach $10,000 in stocks/ETFs',          flavour: "Five figures in the market. Compounding has entered the chat.",                                   unlocked: investorValue >= 10000 },
-    { id: 'crypto_entry',    icon: '🔮', name: 'Down the Rabbit Hole', desc: 'Hold any crypto',                       flavour: "Down the rabbit hole. There's no going back now.",                                               unlocked: cryptoValue > 0 },
-    { id: 'diamond_hands',   icon: '💎', name: 'Diamond Hands',        desc: 'Hold $10,000+ in crypto',               flavour: "You held through the storm. Most paper hands are gone. You're still here.",                      unlocked: cryptoValue >= 10000 },
-    { id: 'diversified',     icon: '🌐', name: 'Diversified',          desc: 'Hold $1,000+ in stocks/ETFs and crypto',flavour: "Spread across asset classes like a true wealth builder.",                                        unlocked: investorValue >= 1000 && cryptoValue >= 1000 },
-    { id: 'budget_setup',    icon: '📋', name: 'Budget Boss',          desc: 'Set up income and expenses',            flavour: "You know your numbers. That alone puts you ahead of most people.",                               unlocked: data.budget.income.length > 0 && data.budget.expenses.length > 0 },
-    { id: 'first_goal',      icon: '🎯', name: 'Goal Setter',          desc: 'Create your first goal',                flavour: "A goal without a plan is just a wish. You have both.",                                           unlocked: data.goals.length > 0 },
-    { id: 'goal_crusher',    icon: '🏆', name: 'Goal Crusher',         desc: 'Complete a goal',                       flavour: "Talk is cheap. You actually did it.",                                                            unlocked: data.goals.some(g => g.completed) },
-    { id: 'savings_rate_20', icon: '💹', name: 'Saver Mode',           desc: 'Hit a 20% savings rate',                flavour: "One in five dollars saved. The wealth gap starts here.",                                         unlocked: savingsRate >= 20 },
-    { id: 'savings_rate_40', icon: '🚀', name: 'Savings Machine',      desc: 'Hit a 40% savings rate',                flavour: "Nearly half your income retained. This is how wealth compounds fast.",                           unlocked: savingsRate >= 40 },
-    { id: 'debt_aware',      icon: '⚔️', name: 'Debt Aware',           desc: 'Track your debts in Vault',             flavour: "Naming the enemy is how you beat it.",                                                          unlocked: (data.debts?.length ?? 0) > 0 },
-    { id: 'debt_10',         icon: '🗡️', name: 'Chipping Away',        desc: 'Pay off 10% of total debt',             flavour: "Ten percent down. The avalanche is picking up speed.",                                          unlocked: debtPctPaid >= 10 },
-    { id: 'nw_positive',     icon: '✨', name: 'In The Green',         desc: 'Achieve positive true net worth',        flavour: "Assets exceed liabilities. You're building, not sinking.",                                      unlocked: trueNetWorth > 0 },
-    { id: 'nw_10k',          icon: '💰', name: 'Five Figures',         desc: 'Reach $10,000 net worth',               flavour: "Five figures of net worth. The foundation is real.",                                            unlocked: trueNetWorth >= 10000 },
-    { id: 'super_starter',   icon: '🌱', name: 'Super Starter',        desc: 'Have super balance over $10,000',       flavour: "Future you is already grateful. The seed is planted.",                                          unlocked: superValue >= 10000 },
+    // Bronze
+    { id: 'first_buffer',     tier: 'bronze',   icon: '🥉', name: 'First Buffer',       desc: 'Reach $5,000 in liquid savings',            flavour: "Five grand liquid. Most people never get here. You did.",                                                                                                                    unlocked: saverValue >= 5000 },
+    { id: 'safety_net',       tier: 'bronze',   icon: '🛡️', name: 'Safety Net',         desc: 'Cover 3 months of expenses in liquid savings',flavour: "Three months of runway. One surprise won't break you now.",                                                                                                              unlocked: saverValue >= totalExpenses * 3 },
+    { id: 'first_position',   tier: 'bronze',   icon: '📈', name: 'First Position',     desc: 'Reach $5,000 in stocks or ETFs',            flavour: "Your money is working while you sleep. Welcome to the other side.",                                                                                                        unlocked: investorValue >= 5000 },
+    { id: 'diamond_hands',    tier: 'bronze',   icon: '💎', name: 'Diamond Hands',      desc: 'Hold $5,000+ in crypto',                    flavour: "You held through the storm. Most paper hands are gone. You're still here.",                                                                                                  unlocked: cryptoValue >= 5000 },
+    { id: 'debt_slayer',      tier: 'bronze',   icon: '⚔️', name: 'Debt Slayer',        desc: 'Pay off 25% of total debt',                 flavour: "A quarter of the chain is broken. The momentum is yours now.",                                                                                                             unlocked: debtPctPaid >= 25 },
+    { id: 'saver_mode',       tier: 'bronze',   icon: '💹', name: 'Saver Mode',         desc: 'Sustain a 30%+ savings rate',               flavour: "Three in ten dollars saved. The wealth gap starts here.",                                                                                                                  unlocked: savingsRate >= 30 },
+    // Silver
+    { id: 'cash_fortress',    tier: 'silver',   icon: '🏰', name: 'Cash Fortress',      desc: 'Reach $25,000 in liquid savings',           flavour: "Twenty-five grand liquid. Sleep easy — you're covered for anything.",                                                                                                      unlocked: saverValue >= 25000 },
+    { id: 'portfolio_builder',tier: 'silver',   icon: '💼', name: 'Portfolio Builder',  desc: 'Reach $25,000 in stocks and ETFs',          flavour: "Twenty-five thousand in the market. Compounding is silently making you rich.",                                                                                             unlocked: investorValue >= 25000 },
+    { id: 'crypto_believer',  tier: 'silver',   icon: '🔮', name: 'Crypto Believer',    desc: 'Reach $25,000 in crypto',                   flavour: "On-chain and serious. The suits still don't understand this asset class.",                                                                                                 unlocked: cryptoValue >= 25000 },
+    { id: 'debt_free',        tier: 'silver',   icon: '🗡️', name: 'Debt Free',          desc: 'Pay off 100% of total debt',                flavour: "DEBT FREE. There is no better financial feeling in the world.",                                                                                                            unlocked: debtPctPaid >= 100 },
+    { id: 'savings_machine',  tier: 'silver',   icon: '🚀', name: 'Savings Machine',    desc: 'Sustain a 50%+ savings rate',               flavour: "Half your income retained. This is how wealth compounds fast.",                                                                                                            unlocked: savingsRate >= 50 },
+    { id: 'goal_crusher',     tier: 'silver',   icon: '🏆', name: 'Goal Crusher',       desc: 'Complete 5 financial goals',                flavour: "Five goals crushed. Talk is cheap — you actually did it. Five times.",                                                                                                     unlocked: data.goals.filter(g => g.completed).length >= 5 },
+    // Gold
+    { id: 'liquidity_lord',   tier: 'gold',     icon: '👑', name: 'Liquidity Lord',     desc: 'Reach $100,000 in liquid savings',          flavour: "Six figures liquid. You could survive anything the economy throws at you.",                                                                                               unlocked: saverValue >= 100000 },
+    { id: 'market_sovereign', tier: 'gold',     icon: '🌐', name: 'Market Sovereign',   desc: 'Reach $100,000 in stocks and ETFs',         flavour: "Market Sovereign. Your portfolio outlasts any single market event.",                                                                                                      unlocked: investorValue >= 100000 },
+    { id: 'crypto_sovereign', tier: 'gold',     icon: '⚡', name: 'Crypto Sovereign',   desc: 'Reach $100,000 in crypto',                  flavour: "Vires in Numeris. The code never lies. You made it.",                                                                                                                     unlocked: cryptoValue >= 100000 },
+    { id: 'true_wealth',      tier: 'gold',     icon: '✨', name: 'True Wealth',        desc: 'Reach $250,000 true net worth',             flavour: "Quarter million net worth. Generational wealth territory begins here.",                                                                                                   unlocked: trueNetWorth >= 250000 },
+    { id: 'half_a_mill',      tier: 'gold',     icon: '💰', name: 'Half a Mill',        desc: 'Reach $500,000 liquid net worth',           flavour: "Half a million liquid. Most people retire on less. You're just getting started.",                                                                                         unlocked: liquidNetWorth >= 500000 },
+    // Platinum
+    { id: 'unlock_the_vault', tier: 'platinum', icon: '🏛️', name: 'Unlock The Vault',  desc: 'Reach $1,000,000 liquid net worth',         flavour: "THE VAULT IS YOURS. A million liquid. Years of discipline, sacrifice, and compounding — all of it led here. You didn't just build wealth. You built a legacy.",       unlocked: liquidNetWorth >= 1000000 },
   ]
 
   const unlockedCount = ACHIEVEMENTS.filter(a => a.unlocked).length
+  const unlockedByTier = (t) => ACHIEVEMENTS.filter(a => a.tier === t && a.unlocked).length
+  const byTier = (t) => ACHIEVEMENTS.filter(a => a.tier === t)
   const selectedAch = selected ? ACHIEVEMENTS.find(a => a.id === selected) : null
+
+  const renderTile = (ach) => {
+    const { id, icon, name, desc, unlocked } = ach
+    const tierColor = TIER_META[ach.tier].color
+    return (
+      <div
+        key={id}
+        title={unlocked ? undefined : desc}
+        onClick={() => { if (unlocked) setSelected(id) }}
+        style={{
+          background: 'var(--surface2)',
+          borderRadius: 10,
+          padding: '14px 12px',
+          textAlign: 'center',
+          border: unlocked ? `1px solid ${tierColor}40` : '1px solid var(--border)',
+          opacity: unlocked ? 1 : 0.35,
+          filter: unlocked ? 'none' : 'grayscale(1)',
+          transition: 'box-shadow 0.18s, transform 0.18s',
+          cursor: unlocked ? 'pointer' : 'default',
+        }}
+        onMouseEnter={e => {
+          if (unlocked) {
+            e.currentTarget.style.boxShadow = `0 0 16px ${tierColor}30`
+            e.currentTarget.style.transform = 'translateY(-2px)'
+          }
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.boxShadow = ''
+          e.currentTarget.style.transform = ''
+        }}
+      >
+        <div style={{ fontSize: 28, marginBottom: 8, lineHeight: 1 }}>{icon}</div>
+        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{name}</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{desc}</div>
+      </div>
+    )
+  }
+
+  const platAch = byTier('platinum')[0]
 
   return (
     <div className="card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)' }}>Achievements</div>
-        <div style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 700 }}>{unlockedCount} / {ACHIEVEMENTS.length} unlocked</div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)', marginBottom: 4 }}>Achievements</div>
+          <div style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 700 }}>{unlockedCount} / {ACHIEVEMENTS.length} unlocked</div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', gap: 12 }}>
+          <span>🥉 <b style={{ color: 'var(--text)' }}>{unlockedByTier('bronze')}</b></span>
+          <span>🥈 <b style={{ color: 'var(--text)' }}>{unlockedByTier('silver')}</b></span>
+          <span>🥇 <b style={{ color: 'var(--text)' }}>{unlockedByTier('gold')}</b></span>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
-        {ACHIEVEMENTS.map(({ id, icon, name, desc, unlocked }) => (
+      {/* Bronze / Silver / Gold tiers */}
+      {(['bronze', 'silver', 'gold']).map(tier => (
+        <div key={tier} style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: TIER_META[tier].color, marginBottom: 10 }}>
+            {TIER_META[tier].label}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+            {byTier(tier).map(renderTile)}
+          </div>
+        </div>
+      ))}
+
+      {/* Platinum — full width */}
+      {platAch && (
+        <div style={{ marginTop: 4 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: TIER_META.platinum.color, marginBottom: 10 }}>
+            {TIER_META.platinum.label}
+          </div>
           <div
-            key={id}
-            title={unlocked ? undefined : desc}
-            onClick={() => { if (unlocked) setSelected(id) }}
+            onClick={() => { if (platAch.unlocked) setSelected(platAch.id) }}
+            title={platAch.unlocked ? undefined : platAch.desc}
             style={{
-              background: 'var(--surface2)',
-              borderRadius: 10,
-              padding: '14px 12px',
-              textAlign: 'center',
-              border: unlocked ? '1px solid rgba(240,165,0,0.3)' : '1px solid var(--border)',
-              opacity: unlocked ? 1 : 0.35,
-              filter: unlocked ? 'none' : 'grayscale(1)',
-              transition: 'box-shadow 0.18s, transform 0.18s',
-              cursor: unlocked ? 'pointer' : 'default',
+              background: platAch.unlocked
+                ? 'linear-gradient(135deg, rgba(168,126,240,0.08) 0%, rgba(240,165,0,0.06) 100%)'
+                : 'var(--surface2)',
+              borderRadius: 12,
+              padding: '20px 24px',
+              display: 'flex', alignItems: 'center', gap: 20,
+              border: platAch.unlocked ? `1px solid ${TIER_META.platinum.color}50` : '1px solid var(--border)',
+              opacity: platAch.unlocked ? 1 : 0.35,
+              filter: platAch.unlocked ? 'none' : 'grayscale(1)',
+              cursor: platAch.unlocked ? 'pointer' : 'default',
+              transition: 'box-shadow 0.18s',
             }}
             onMouseEnter={e => {
-              if (unlocked) {
-                e.currentTarget.style.boxShadow = '0 0 16px rgba(240,165,0,0.2)'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }
+              if (platAch.unlocked) e.currentTarget.style.boxShadow = `0 0 24px ${TIER_META.platinum.color}25`
             }}
-            onMouseLeave={e => {
-              e.currentTarget.style.boxShadow = ''
-              e.currentTarget.style.transform = ''
-            }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = '' }}
           >
-            <div style={{ fontSize: 28, marginBottom: 8, lineHeight: 1 }}>{icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{name}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>{desc}</div>
+            <div style={{ fontSize: 44, lineHeight: 1, flexShrink: 0 }}>{platAch.icon}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 16, fontWeight: 800, marginBottom: 4, color: platAch.unlocked ? TIER_META.platinum.color : 'var(--text)' }}>{platAch.name}</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>{platAch.desc}</div>
+            </div>
+            {platAch.unlocked && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: TIER_META.platinum.color, background: `${TIER_META.platinum.color}15`, padding: '4px 12px', borderRadius: 20, flexShrink: 0 }}>
+                ✓ Unlocked
+              </span>
+            )}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
+      {/* Detail modal */}
       {selectedAch && (
         <Modal title="" onClose={() => setSelected(null)} size="modal-sm">
           <div style={{ textAlign: 'center', paddingBottom: 8 }}>
             <div style={{ fontSize: 48, marginBottom: 12, lineHeight: 1 }}>{selectedAch.icon}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: TIER_META[selectedAch.tier].color, marginBottom: 8 }}>{TIER_META[selectedAch.tier].label}</div>
             <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 800, marginBottom: 6 }}>{selectedAch.name}</div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{selectedAch.desc}</div>
             <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: 20, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 8 }}>
