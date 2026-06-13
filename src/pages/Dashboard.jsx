@@ -5,7 +5,7 @@ import { Modal, EditValueModal } from '../components/Modal'
 import { useWeather } from '../hooks/useWeather'
 import { VaultRank } from '../components/VaultRank'
 import { useSnapshots, takeSnapshot } from '../hooks/useSnapshots'
-import { takeDailySnapshot } from '../hooks/useDailySnapshots'
+import { takeDailySnapshot, useDailySnapshots } from '../hooks/useDailySnapshots'
 
 const QUIRKY = [
   'Welcome back, Benji',
