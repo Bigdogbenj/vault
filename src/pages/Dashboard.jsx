@@ -3,7 +3,6 @@ import { AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, ResponsiveContai
 import { fmt, fmtFull, fmtNum, fmtNative, toAUD, toMonthly, genId, getNextFireTime, resolvedAccountBalance, LIVE_ACCOUNT_NAMES } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
 import { useWeather } from '../hooks/useWeather'
-import { VaultRank } from '../components/VaultRank'
 import { useSnapshots, takeSnapshot } from '../hooks/useSnapshots'
 import { takeDailySnapshot, useDailySnapshots } from '../hooks/useDailySnapshots'
 
@@ -499,12 +498,6 @@ export function Dashboard({ data, updateData, prices }) {
           </div>
         </div>
       )}
-
-      {/* Vault Rank */}
-      <div>
-        <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 17, fontWeight: 700, marginBottom: 14 }}>Vault Rank</div>
-        <VaultRank data={data} prices={prices} netWorth={trueNetWorth} />
-      </div>
 
       {editAccount && (
         <EditValueModal

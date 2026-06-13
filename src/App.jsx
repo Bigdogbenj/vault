@@ -10,6 +10,7 @@ import { Projects } from './pages/Projects'
 import { Debts } from './pages/Debts'
 import { Schedules } from './pages/Schedules'
 import { DailyPerformance } from './pages/DailyPerformance'
+import { VaultRankPage } from './pages/VaultRankPage'
 import { useSupabaseData } from './hooks/useSupabaseData'
 import { usePrices } from './hooks/usePrices'
 import { DEFAULTS } from './data/defaults'
@@ -206,6 +207,7 @@ export default function App() {
           {page === 'projects'   && <Projects   {...pageProps} />}
           {page === 'debts'      && <Debts      {...pageProps} />}
           {page === 'schedules'  && <Schedules  {...pageProps} />}
+          {page === 'vaultrank'  && <VaultRankPage {...pageProps} />}
         </main>
       </div>
       <BottomNav page={page} setPage={setPage} />
