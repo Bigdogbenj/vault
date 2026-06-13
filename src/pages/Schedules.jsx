@@ -306,7 +306,7 @@ function ScheduleModal({ item, accounts, onClose, onSave }) {
 
 // ─── Pool Card ────────────────────────────────────────────────────────────────
 
-function PoolCard({ poolId, pool, onDeploy, onEditContrib }) {
+function PoolCard({ poolId, pool, onDeploy, onEditContrib, onEditAvailable }) {
   const cfg = POOL_CONFIG[poolId]
   return (
     <div className="card" style={{ borderTop: `2px solid ${cfg.color}`, padding: '18px 20px' }}>
@@ -331,7 +331,9 @@ function PoolCard({ poolId, pool, onDeploy, onEditContrib }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: '10px 12px' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>Available</div>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: cfg.color }}>{fmt(pool.available)}</div>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: cfg.color, cursor: 'pointer' }} onClick={onEditAvailable}>
+            {fmt(pool.available)} <span style={{ color: 'var(--amber)', fontSize: 13 }}>✎</span>
+          </div>
         </div>
         <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: '10px 12px' }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>Deployed</div>
@@ -476,6 +478,20 @@ export function Schedules({ data, updateData, prices }) {
 
   const deleteSchedule = (id) => updateData('schedules', schedules.filter(s => s.id !== id))
   const toggleSchedule = (id) => updateData('schedules', schedules.map(s => s.id === id ? { ...s, active: !s.active } : s))
+
+  const handleDeleteDeployment = (id) => {
+    const entry = poolDeployments.find(d => d.id === id)
+    if (!entry) return
+    updateData('pools', {
+      ...pools,
+      [entry.poolId]: {
+        ...pools[entry.poolId],
+        available: (pools[entry.poolId]?.available || 0) + entry.amount,
+        deployedTotal: Math.max(0, (pools[entry.poolId]?.deployedTotal || 0) - entry.amount),
+      },
+    })
+    updateData('poolDeployments', poolDeployments.filter(d => d.id !== id))
+  }
 
   const handleDeploy = ({ poolId, asset, units, pricePerUnit, amount, deployedAt }) => {
     const newDeployment = { id: genId(), poolId, asset, units, pricePerUnit, amount, deployedAt }
@@ -789,6 +805,7 @@ export function Schedules({ data, updateData, prices }) {
               <PoolCard key={id} poolId={id} pool={pool}
                 onDeploy={() => setDeployModal(id)}
                 onEditContrib={() => setEditContrib({ poolId: id, field: 'weeklyContribution', label: `${POOL_CONFIG[id].label} Weekly Contribution` })}
+                onEditAvailable={() => setEditContrib({ poolId: id, field: 'available', label: `${POOL_CONFIG[id].label} Available Balance` })}
               />
             ))}
           </div>
@@ -811,6 +828,7 @@ export function Schedules({ data, updateData, prices }) {
                       <th style={{ textAlign: 'right' }}>Units</th>
                       <th style={{ textAlign: 'right' }}>Price/Unit</th>
                       <th style={{ textAlign: 'right' }}>Total</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -832,6 +850,9 @@ export function Schedules({ data, updateData, prices }) {
                           {d.pricePerUnit != null ? fmt(d.pricePerUnit) : '—'}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--amber)', whiteSpace: 'nowrap' }}>{fmt(d.amount)}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button className="icon-btn danger" onClick={() => handleDeleteDeployment(d.id)} title="Delete">✕</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
