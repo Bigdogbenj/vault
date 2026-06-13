@@ -262,6 +262,8 @@ export function Dashboard({ data, updateData, prices }) {
                   {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                 </Pie>
                 <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(v) => [fmt(v)]} labelStyle={{ color: 'var(--muted)' }} />
+                <text x={80} y={74} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 10, fill: 'var(--muted)' }}>Total</text>
+                <text x={80} y={90} textAnchor="middle" dominantBaseline="middle" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--text)' }}>{fmt(totalBalance)}</text>
               </PieChart>
             </ResponsiveContainer>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -269,9 +271,12 @@ export function Dashboard({ data, updateData, prices }) {
                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div className="color-dot" style={{ background: e.color }} />
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{e.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{e.name}</span>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>{(e.value / totalBalance * 100).toFixed(0)}%</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text)' }}>{fmt(e.value)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{(e.value / totalBalance * 100).toFixed(0)}%</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -430,10 +435,15 @@ export function Dashboard({ data, updateData, prices }) {
                 .sort((a, b) => a.nextFire - b.nextFire)
                 .slice(0, 3)
               if (upcoming.length === 0) return <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '12px 0' }}>No upcoming transfers</div>
+              const TC = {
+                income:   { color: '#4caf7d', bg: 'rgba(76,175,125,0.12)',  label: 'Income'   },
+                transfer: { color: '#5b9ef0', bg: 'rgba(91,158,240,0.12)',  label: 'Transfer' },
+                expense:  { color: '#e05b5b', bg: 'rgba(224,91,91,0.12)',   label: 'Expense'  },
+              }
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {upcoming.map(s => {
-                    const typeColor = s.type === 'income' ? 'var(--green)' : 'var(--blue)'
+                    const tc = TC[s.type] ?? TC.transfer
                     const d = s.nextFire
                     const now = new Date()
                     const diff = d - now
@@ -443,10 +453,15 @@ export function Dashboard({ data, updateData, prices }) {
                     return (
                       <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 13 }}>
+                            {s.name}
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: tc.bg, color: tc.color }}>{tc.label}</span>
+                          </div>
                           <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{dayLabel}</div>
                         </div>
-                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: typeColor }}>{s.type === 'income' ? '+' : ''}{fmt(s.amount)}</span>
+                        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: tc.color }}>
+                          {s.type === 'income' ? '+' : s.type === 'expense' ? '-' : ''}{fmt(s.amount)}
+                        </span>
                       </div>
                     )
                   })}

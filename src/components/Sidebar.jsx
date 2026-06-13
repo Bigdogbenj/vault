@@ -34,7 +34,7 @@ export function Sidebar({ page, setPage }) {
       </div>
       <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)' }}>
         <div style={{ fontSize: 11, color: 'var(--muted)' }}>Vault v1.0</div>
-        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>All data stored locally</div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Synced to cloud ☁️</div>
       </div>
     </nav>
   )
