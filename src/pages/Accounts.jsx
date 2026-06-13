@@ -115,78 +115,141 @@ export function Accounts({ data, updateData, prices }) {
           <span className="section-title">All Accounts</span>
           <button className="btn btn-primary btn-sm" onClick={() => setModal({ item: null })}>+ Add Account</button>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Type</th>
-              <th>Balance</th>
-              <th>% of Total</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.accounts.map(acc => {
-              const aud = audBalance(acc)
-              const isUsd = acc.currency === 'USD'
-              return (
-                <tr key={acc.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="color-dot" style={{ background: acc.color || '#6b7280', width: 12, height: 12 }} />
-                      <span style={{ fontWeight: 600 }}>{acc.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="badge badge-muted">{acc.type}</span>
-                      {isUsd && <span className="badge badge-blue">USD</span>}
-                    </div>
-                  </td>
-                  <td>
+        <div className="desktop-table table-scroll-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Balance</th>
+                <th>% of Total</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.accounts.map(acc => {
+                const aud = audBalance(acc)
+                const isUsd = acc.currency === 'USD'
+                return (
+                  <tr key={acc.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="color-dot" style={{ background: acc.color || '#6b7280', width: 12, height: 12 }} />
+                        <span style={{ fontWeight: 600 }}>{acc.name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="badge badge-muted">{acc.type}</span>
+                        {isUsd && <span className="badge badge-blue">USD</span>}
+                      </div>
+                    </td>
+                    <td>
+                      {LIVE_ACCOUNT_NAMES.includes(acc.name) ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontWeight: 600, fontSize: 15 }}>{fmt(aud)}</span>
+                          <span className="badge badge-green" style={{ fontSize: 10, padding: '2px 6px' }}>live</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span
+                            className="editable-val"
+                            style={{ fontWeight: 600, fontSize: 15 }}
+                            onClick={() => setEditBal(acc)}
+                          >
+                            {isUsd ? fmtNative(acc.balance, 'USD') : fmt(acc.balance)}
+                          </span>
+                          {isUsd && (
+                            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                              ≈ {fmt(aud)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="progress-bar" style={{ width: 80 }}>
+                          <div className="progress-fill" style={{ width: `${total > 0 ? (aud / total * 100).toFixed(0) : 0}%`, background: acc.color || '#6b7280' }} />
+                        </div>
+                        <span style={{ fontSize: 12, color: 'var(--muted)' }}>{total > 0 ? (aud / total * 100).toFixed(1) : '0'}%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {!LIVE_ACCOUNT_NAMES.includes(acc.name) && (
+                          <button className="icon-btn" onClick={() => setModal({ item: acc })} title="Edit">✎</button>
+                        )}
+                        <button className="icon-btn danger" onClick={() => updateData('accounts', data.accounts.filter(a => a.id !== acc.id))} title="Delete">✕</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mobile-cards">
+          {data.accounts.map(acc => {
+            const aud = audBalance(acc)
+            const isUsd = acc.currency === 'USD'
+            return (
+              <div key={acc.id} style={{
+                border: '1px solid var(--border)',
+                borderLeft: `3px solid ${acc.color || '#6b7280'}`,
+                borderRadius: 12,
+                padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="color-dot" style={{ background: acc.color || '#6b7280' }} />
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{acc.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <span className="badge badge-muted">{acc.type}</span>
+                    {isUsd && <span className="badge badge-blue">USD</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
+                  <div>
                     {LIVE_ACCOUNT_NAMES.includes(acc.name) ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontWeight: 600, fontSize: 15 }}>{fmt(aud)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontWeight: 700, fontSize: 18 }}>{fmt(aud)}</span>
                         <span className="badge badge-green" style={{ fontSize: 10, padding: '2px 6px' }}>live</span>
                       </div>
                     ) : (
                       <div>
-                        <span
-                          className="editable-val"
-                          style={{ fontWeight: 600, fontSize: 15 }}
-                          onClick={() => setEditBal(acc)}
-                        >
+                        <span className="editable-val" style={{ fontWeight: 700, fontSize: 18 }} onClick={() => setEditBal(acc)}>
                           {isUsd ? fmtNative(acc.balance, 'USD') : fmt(acc.balance)}
                         </span>
                         {isUsd && (
-                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                            ≈ {fmt(aud)}
-                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>≈ {fmt(aud)}</div>
                         )}
                       </div>
                     )}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="progress-bar" style={{ width: 80 }}>
-                        <div className="progress-fill" style={{ width: `${total > 0 ? (aud / total * 100).toFixed(0) : 0}%`, background: acc.color || '#6b7280' }} />
-                      </div>
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{total > 0 ? (aud / total * 100).toFixed(1) : '0'}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {!LIVE_ACCOUNT_NAMES.includes(acc.name) && (
-                        <button className="icon-btn" onClick={() => setModal({ item: acc })} title="Edit">✎</button>
-                      )}
-                      <button className="icon-btn danger" onClick={() => updateData('accounts', data.accounts.filter(a => a.id !== acc.id))} title="Delete">✕</button>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {!LIVE_ACCOUNT_NAMES.includes(acc.name) && (
+                      <button className="icon-btn" onClick={() => setModal({ item: acc })} title="Edit">✎</button>
+                    )}
+                    <button className="icon-btn danger" onClick={() => updateData('accounts', data.accounts.filter(a => a.id !== acc.id))} title="Delete">✕</button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="progress-bar" style={{ flex: 1 }}>
+                    <div className="progress-fill" style={{
+                      width: `${total > 0 ? Math.min(100, aud / total * 100) : 0}%`,
+                      background: acc.color || '#6b7280',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>
+                    {total > 0 ? (aud / total * 100).toFixed(1) : '0'}%
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {modal && (

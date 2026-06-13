@@ -276,29 +276,51 @@ export function DailyPerformance({ data, prices }) {
               )}
             </div>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ textAlign: 'left', paddingBottom: 8, fontWeight: 500 }}>Asset</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Current Value</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Today's $ Change</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Today's % Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr key={row.key} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '10px 0' }}>
-                    <div style={{ fontWeight: 600 }}>{row.symbol}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{row.name}</div>
-                  </td>
-                  <td style={{ textAlign: 'right', padding: '10px 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>{fmt(row.val)}</td>
-                  <td style={{ textAlign: 'right', padding: '10px 0' }}><DeltaCell val={row.delta} /></td>
-                  <td style={{ textAlign: 'right', padding: '10px 0' }}><PctCell val={row.pct} /></td>
+          <div className="desktop-table table-scroll-wrapper">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ textAlign: 'left', paddingBottom: 8, fontWeight: 500 }}>Asset</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Current Value</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Today's $ Change</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Today's % Change</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map(row => (
+                  <tr key={row.key} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 0' }}>
+                      <div style={{ fontWeight: 600 }}>{row.symbol}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{row.name}</div>
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '10px 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>{fmt(row.val)}</td>
+                    <td style={{ textAlign: 'right', padding: '10px 0' }}><DeltaCell val={row.delta} /></td>
+                    <td style={{ textAlign: 'right', padding: '10px 0' }}><PctCell val={row.pct} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mobile-cards">
+            {rows.map(row => (
+              <div key={row.key} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '10px 0', borderBottom: '1px solid var(--border)',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{row.symbol}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{row.name}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>{fmt(row.val)}</div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 2, fontSize: 12 }}>
+                    <DeltaCell val={row.delta} />
+                    <PctCell val={row.pct} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
 
@@ -314,37 +336,64 @@ export function DailyPerformance({ data, prices }) {
             No history yet — snapshots are taken daily when prices load
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ textAlign: 'left', paddingBottom: 8, fontWeight: 500 }}>Date</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Net Worth</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>$ Change</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>% Change</th>
-                <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Top Asset</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map(h => (
-                <tr key={h.date} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '10px 0' }}>{fmtDate(h.date)}</td>
-                  <td style={{ textAlign: 'right', padding: '10px 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>{fmt(h.netWorth)}</td>
-                  <td style={{ textAlign: 'right', padding: '10px 0' }}><DeltaCell val={h.delta} /></td>
-                  <td style={{ textAlign: 'right', padding: '10px 0' }}><PctCell val={h.pct} /></td>
-                  <td style={{ textAlign: 'right', padding: '10px 0' }}>
-                    {h.topAsset ? (
-                      <span>
-                        <span style={{ fontWeight: 600 }}>{h.topAsset.symbol}</span>{' '}
-                        <span style={{ color: h.topAsset.change >= 0 ? 'var(--green)' : 'var(--red)', fontSize: 11 }}>
-                          {h.topAsset.change >= 0 ? '+' : ''}{fmt(h.topAsset.change)}
-                        </span>
-                      </span>
-                    ) : <span style={{ color: 'var(--muted)' }}>—</span>}
-                  </td>
+          <div className="desktop-table table-scroll-wrapper">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ textAlign: 'left', paddingBottom: 8, fontWeight: 500 }}>Date</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Net Worth</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>$ Change</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>% Change</th>
+                  <th style={{ textAlign: 'right', paddingBottom: 8, fontWeight: 500 }}>Top Asset</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {history.map(h => (
+                  <tr key={h.date} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 0' }}>{fmtDate(h.date)}</td>
+                    <td style={{ textAlign: 'right', padding: '10px 0', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600 }}>{fmt(h.netWorth)}</td>
+                    <td style={{ textAlign: 'right', padding: '10px 0' }}><DeltaCell val={h.delta} /></td>
+                    <td style={{ textAlign: 'right', padding: '10px 0' }}><PctCell val={h.pct} /></td>
+                    <td style={{ textAlign: 'right', padding: '10px 0' }}>
+                      {h.topAsset ? (
+                        <span>
+                          <span style={{ fontWeight: 600 }}>{h.topAsset.symbol}</span>{' '}
+                          <span style={{ color: h.topAsset.change >= 0 ? 'var(--green)' : 'var(--red)', fontSize: 11 }}>
+                            {h.topAsset.change >= 0 ? '+' : ''}{fmt(h.topAsset.change)}
+                          </span>
+                        </span>
+                      ) : <span style={{ color: 'var(--muted)' }}>—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mobile-cards">
+            {history.map(h => (
+              <div key={h.date} style={{
+                border: '1px solid var(--border)',
+                borderRadius: 10, padding: '12px 14px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>{fmtDate(h.date)}</span>
+                  <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>{fmt(h.netWorth)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <DeltaCell val={h.delta} />
+                  <PctCell val={h.pct} />
+                </div>
+                {h.topAsset && (
+                  <div style={{ marginTop: 4, fontSize: 11, color: 'var(--muted)' }}>
+                    Top: <span style={{ fontWeight: 600 }}>{h.topAsset.symbol}</span>{' '}
+                    <span style={{ color: h.topAsset.change >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                      {h.topAsset.change >= 0 ? '+' : ''}{fmt(h.topAsset.change)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
 
         {histStats && (

@@ -693,3 +693,10 @@ input[type=range]::-webkit-slider-thumb {
   /* Page gap tighter */
   .page { gap: 14px; }
 }
+
+/* ── Card layout helpers (toggle table ↔ cards on small screens) ── */
+.mobile-cards { display: none; }
+@media (max-width: 640px) {
+  .mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+  .desktop-table { display: none !important; }
+}
