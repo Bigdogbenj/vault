@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fmt, fmtFull, fmtNum, fmtNative, toAUD, toMonthly, genId, getNextFireTime, resolvedAccountBalance, LIVE_ACCOUNT_NAMES } from '../utils'
 import { Modal, EditValueModal } from '../components/Modal'
 import { useWeather } from '../hooks/useWeather'
@@ -123,11 +123,13 @@ export function Dashboard({ data, updateData, prices }) {
       .map(s => ({
         date: new Date(s.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
         value: s.net_worth,
+        liquid: s.net_worth - superBalance,
+        trueNW: s.net_worth - totalDebt,
         crypto: s.crypto_value,
         stocks: s.stocks_value,
         etfs: s.etf_value,
       }))
-  }, [snapshots, range])
+  }, [snapshots, range, superBalance, totalDebt])
 
   return (
     <div className="page">
@@ -168,7 +170,7 @@ export function Dashboard({ data, updateData, prices }) {
         </div>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: trueNetWorth < 0 ? 'rgba(224,91,91,0.25)' : 'rgba(76,175,125,0.2)' }}>
           <div className="stat-label">True Net Worth</div>
-          <div className="stat-value" style={{ fontSize: 26, color: trueNetWorth < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(trueNetWorth)}</div>
+          <div className="stat-value" style={{ fontSize: 26, color: trueNetWorth < 0 ? 'var(--red)' : '#5b9ef0' }}>{fmt(trueNetWorth)}</div>
           <div className="stat-sub" style={{ marginTop: 6 }}>Assets minus {fmt(totalDebt)} debt</div>
         </div>
         <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% savings rate`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
@@ -194,20 +196,30 @@ export function Dashboard({ data, updateData, prices }) {
               Not enough data yet — come back tomorrow as history builds up 📈
             </div>
           ) : (
+            <>
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={trend}>
-                <defs>
-                  <linearGradient id="gradNW" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f0a500" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#f0a500" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
+              <LineChart data={trend}>
                 <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
-                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={v => [fmt(v), 'Net Worth']} labelStyle={{ color: 'var(--muted)' }} />
-                <Area type="monotone" dataKey="value" stroke="#f0a500" strokeWidth={2} fill="url(#gradNW)" dot={false} />
-              </AreaChart>
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }} formatter={(v, name) => [fmt(v), name]} labelStyle={{ color: 'var(--muted)' }} itemStyle={{ color: 'var(--text)' }} />
+                <Line type="monotone" dataKey="value"  name="Gross Net Worth"   stroke="#f0a500" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="liquid" name="Liquid Net Worth"  stroke="#4caf7d" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="trueNW" name="True Net Worth"    stroke="#5b9ef0" strokeWidth={2} dot={false} />
+              </LineChart>
             </ResponsiveContainer>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 8 }}>
+              {[
+                { color: '#f0a500', label: 'Gross Net Worth' },
+                { color: '#4caf7d', label: 'Liquid Net Worth' },
+                { color: '#5b9ef0', label: 'True Net Worth' },
+              ].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 18, height: 2, background: color, borderRadius: 1 }} />
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>{label}</span>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </div>
 
