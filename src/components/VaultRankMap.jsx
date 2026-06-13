@@ -308,8 +308,10 @@ export function VaultRankMap({
           </div>
         </div>
 
-        {/* CENTER — SVG Map */}
-        <svg viewBox="0 0 200 380" width="100%" style={{ display: 'block' }} xmlns="http://www.w3.org/2000/svg">
+        {/* CENTER — SVG Map (fixed 200px tall so it never scales with container width) */}
+        <svg viewBox="0 0 200 380"
+          style={{ display: 'block', height: 200, width: 'auto', justifySelf: 'center' }}
+          xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -342,76 +344,52 @@ export function VaultRankMap({
             </g>
           )}
 
-          {/* Nodes */}
+          {/* Nodes — labels removed; click to see details in the card below */}
           {RANK_ORDER.map(grade => {
             const { x, y } = NODES[grade]
             const color = RANK_COLORS[grade]
             const state = nodeState(grade)
-            const isLeft = x < 100
-            const labelX = isLeft ? x + 26 : x - 26
-            const anchor = isLeft ? 'start' : 'end'
-            const nameOp = state === 'current' ? 0.9 : state === 'next' ? 0.55 : state === 'done' ? 0.45 : 0.22
             const isSelected = selectedRank === grade
 
             return (
               <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
-                {/* Pulse rings — current node only, SVG-native animate */}
                 {state === 'current' && (
                   <>
-                    <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
-                      <animate attributeName="r" values="18;34;34" dur="2.5s" repeatCount="indefinite" />
+                    <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
+                      <animate attributeName="r" values="14;24;24" dur="2.5s" repeatCount="indefinite" />
                       <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
                     </circle>
-                    <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1" opacity="0">
-                      <animate attributeName="r" values="18;42;42" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                    <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1" opacity="0">
+                      <animate attributeName="r" values="14;30;30" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
                       <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
                     </circle>
                   </>
                 )}
-
-                {/* Next — outer glow ring */}
                 {state === 'next' && (
-                  <circle cx={x} cy={y} r="22" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
+                  <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
                 )}
-
-                {/* Selected ring */}
                 {isSelected && state !== 'current' && (
-                  <circle cx={x} cy={y} r="22" fill="none" stroke={color} strokeWidth="1.5"
+                  <circle cx={x} cy={y} r="18" fill="none" stroke={color} strokeWidth="1.5"
                     strokeDasharray="4 3" opacity="0.5" />
                 )}
-
-                {/* Main circle per state */}
                 {state === 'done' && (
-                  <circle cx={x} cy={y} r="18" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
+                  <circle cx={x} cy={y} r="14" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
                 )}
                 {state === 'current' && (
-                  <circle cx={x} cy={y} r="18" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
+                  <circle cx={x} cy={y} r="14" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
                     <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
                   </circle>
                 )}
                 {state === 'next' && (
-                  <circle cx={x} cy={y} r="18" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
+                  <circle cx={x} cy={y} r="14" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
                 )}
                 {state === 'locked' && (
-                  <circle cx={x} cy={y} r="18" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
+                  <circle cx={x} cy={y} r="14" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
                 )}
-
-                {/* Grade letter */}
                 <text x={x} y={y} textAnchor="middle" dominantBaseline="middle"
-                  fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="14" fill={color}
+                  fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="20" fill={color}
                   opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>
                   {grade}
-                </text>
-
-                {/* Labels on opposite side */}
-                <text x={labelX} y={y - 5} textAnchor={anchor}
-                  fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="9" fill={color} opacity={nameOp}>
-                  {RANK_DATA[grade].name}
-                </text>
-                <text x={labelX} y={y + 7} textAnchor={anchor}
-                  fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="8"
-                  fill="rgba(255,255,255,0.45)" opacity={nameOp}>
-                  {RANK_REQ_SHORT[grade]}
                 </text>
               </g>
             )
