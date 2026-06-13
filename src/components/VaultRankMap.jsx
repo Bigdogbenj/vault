@@ -106,20 +106,20 @@ const RANK_REQ_SHORT = {
 }
 
 const NODES = {
-  F: { x: 50,  y: 520 },
-  D: { x: 150, y: 430 },
-  C: { x: 50,  y: 340 },
-  B: { x: 150, y: 250 },
-  A: { x: 50,  y: 160 },
-  S: { x: 150, y: 70  },
+  F: { x: 50,  y: 350 },
+  D: { x: 150, y: 285 },
+  C: { x: 50,  y: 220 },
+  B: { x: 150, y: 155 },
+  A: { x: 50,  y: 90  },
+  S: { x: 150, y: 25  },
 }
 
 const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 100, cy: 475, color: RANK_COLORS.D },
-  { from: 'D', to: 'C', cx: 100, cy: 385, color: RANK_COLORS.C },
-  { from: 'C', to: 'B', cx: 100, cy: 295, color: RANK_COLORS.B },
-  { from: 'B', to: 'A', cx: 100, cy: 205, color: RANK_COLORS.A },
-  { from: 'A', to: 'S', cx: 100, cy: 115, color: RANK_COLORS.S },
+  { from: 'F', to: 'D', cx: 100, cy: 318, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 100, cy: 253, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 100, cy: 188, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 100, cy: 123, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 100, cy: 58,  color: RANK_COLORS.S },
 ]
 
 const fmt = (n) => {
@@ -134,11 +134,11 @@ function Tile({ label, value, sub, color }) {
     <div style={{
       background: `${color}0f`,
       border: `1px solid ${color}2e`,
-      borderRadius: 10, padding: '9px 11px',
+      borderRadius: 10, padding: '7px 9px',
     }}>
-      <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color, opacity: 0.65, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 15, fontWeight: 700, color, lineHeight: 1.2, marginBottom: 2 }}>{value}</div>
-      <div style={{ fontSize: 8, color, opacity: 0.5 }}>{sub}</div>
+      <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color, opacity: 0.65, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color, lineHeight: 1.2, marginBottom: 2 }}>{value}</div>
+      <div style={{ fontSize: 7, color, opacity: 0.5 }}>{sub}</div>
     </div>
   )
 }
@@ -216,25 +216,25 @@ export function VaultRankMap({
       }}>
         <div style={{ display: 'flex', flexDirection: 'row', gap: 14, padding: '14px 16px', alignItems: 'flex-start' }}>
           {/* Pulsing badge — SVG-native animations only */}
-          <svg width="54" height="54" viewBox="0 0 54 54" style={{ flexShrink: 0 }}>
-            <circle cx="27" cy="27" r="20" fill="none" stroke={rankColor} strokeWidth="1.5" opacity="0">
-              <animate attributeName="r" values="20;36;36" dur="2.5s" repeatCount="indefinite" />
+          <svg width="42" height="42" viewBox="0 0 42 42" style={{ flexShrink: 0 }}>
+            <circle cx="21" cy="21" r="16" fill="none" stroke={rankColor} strokeWidth="1.5" opacity="0">
+              <animate attributeName="r" values="16;28;28" dur="2.5s" repeatCount="indefinite" />
               <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
             </circle>
-            <circle cx="27" cy="27" r="20" fill="none" stroke={rankColor} strokeWidth="1" opacity="0">
-              <animate attributeName="r" values="20;44;44" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+            <circle cx="21" cy="21" r="16" fill="none" stroke={rankColor} strokeWidth="1" opacity="0">
+              <animate attributeName="r" values="16;34;34" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
               <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
             </circle>
-            <circle cx="27" cy="27" r="20" fill={`${rankColor}1a`} stroke={rankColor} strokeWidth="2">
+            <circle cx="21" cy="21" r="16" fill={`${rankColor}1a`} stroke={rankColor} strokeWidth="2">
               <animate attributeName="stroke-opacity" values="0.45;1;0.45" dur="2.5s" repeatCount="indefinite" />
             </circle>
-            <text x="27" y="27" textAnchor="middle" dominantBaseline="middle"
-              fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="17" fill="white">
+            <text x="21" y="21" textAnchor="middle" dominantBaseline="middle"
+              fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="13" fill="white">
               {currentRank}
             </text>
           </svg>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 19, fontWeight: 800, color: rankColor, lineHeight: 1.1 }}>{rd.name}</div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 16, fontWeight: 800, color: rankColor, lineHeight: 1.1 }}>{rd.name}</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3, marginBottom: 10, lineHeight: 1.4 }}>{rd.sub}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: 'var(--muted)' }}>
@@ -260,8 +260,8 @@ export function VaultRankMap({
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           borderLeft: '1px solid rgba(255,255,255,0.07)', padding: '12px 20px', gap: 2, flexShrink: 0,
         }}>
-          <div style={{ fontSize: 26, lineHeight: 1 }}>{PRESTIGE_EMBLEMS[currentRank]}</div>
-          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 24, fontWeight: 900, color: rankColor, lineHeight: 1.1 }}>
+          <div style={{ fontSize: 20, lineHeight: 1 }}>{PRESTIGE_EMBLEMS[currentRank]}</div>
+          <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 900, color: rankColor, lineHeight: 1.1 }}>
             {prestigeLevel}
           </div>
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginTop: 2 }}>
@@ -286,7 +286,7 @@ export function VaultRankMap({
       </div>
 
       {/* ── 3-COLUMN GRID ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr 140px', gap: 8, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px', gap: 8, alignItems: 'start' }}>
 
         {/* LEFT — Core + Utility */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -309,7 +309,7 @@ export function VaultRankMap({
         </div>
 
         {/* CENTER — SVG Map */}
-        <svg viewBox="0 0 200 560" width="100%" style={{ display: 'block' }} xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 200 380" width="100%" style={{ display: 'block' }} xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -446,7 +446,7 @@ export function VaultRankMap({
         padding: '14px 16px',
       }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <div style={{
             width: 28, height: 28, borderRadius: '50%',
             background: `${selColor}20`, border: `1.5px solid ${selColor}60`,
@@ -463,14 +463,14 @@ export function VaultRankMap({
         </div>
 
         {/* Track 3-col grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7, marginBottom: 10 }}>
           {mergedTracks.map((t, i) => (
             <div key={i} style={{
               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 9px',
+              borderRadius: 9, padding: '5px 7px',
             }}>
               <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>{t.n}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', marginBottom: 5, lineHeight: 1.3 }}>{t.v}</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)', marginBottom: 5, lineHeight: 1.3 }}>{t.v}</div>
               <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                 <div style={{
                   height: '100%', borderRadius: 2,
