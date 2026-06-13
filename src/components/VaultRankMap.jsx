@@ -286,7 +286,7 @@ export function VaultRankMap({
       </div>
 
       {/* ── 3-COLUMN GRID ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 130px', gap: 8, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr) 130px', gap: 8, alignItems: 'start' }}>
 
         {/* LEFT — Core + Utility */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -309,8 +309,14 @@ export function VaultRankMap({
         </div>
 
         {/* CENTER — SVG Map */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-        <svg width="100%" viewBox="0 0 200 480" xmlns="http://www.w3.org/2000/svg">
+        <div style={{ width: '100%', maxHeight: 420 }}>
+          <svg
+            width="100%"
+            height="420"
+            viewBox="0 0 200 480"
+            preserveAspectRatio="xMidYMid meet"
+            xmlns="http://www.w3.org/2000/svg"
+          >
           <defs>
             <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
               <feGaussianBlur stdDeviation="3" result="blur" />
