@@ -142,18 +142,61 @@ export function VaultRankPage({ data, updateData, prices }) {
       </div>
 
       {/* Animated Rank Map */}
-      <VaultRankMap
-        currentRank={rank.grade}
-        rankProgress={xpPct / 100}
-        tracks={[
-          { pct: Math.min(100, saverValue / 500) },
-          { pct: Math.min(100, investorValue / 750) },
-          { pct: Math.min(100, cryptoValue / 750) },
-          { pct: Math.min(100, savingsRate / 0.3) },
-          { pct: Math.min(100, superValue / 2500) },
-          { pct: Math.min(100, debtPctPaid) },
-        ]}
-      />
+      {(() => {
+        const completedGoals = (data.goals ?? []).filter(g => g.completed).length
+        const g = rank.grade
+        const liveTracks =
+          g === 'F' ? [
+            { pct: saverValue > 0 ? 100 : 0 },
+            { pct: investorValue > 0 ? 100 : 0 },
+            { pct: cryptoValue > 0 ? 100 : 0 },
+            { pct: 100 },
+            { pct: superValue > 0 ? 100 : 0 },
+            { pct: (data.debts ?? []).length > 0 ? 100 : 0 },
+          ] : g === 'D' ? [
+            { pct: Math.min(100, saverValue / 5000 * 100) },
+            { pct: Math.min(100, investorValue / 2500 * 100) },
+            { pct: Math.min(100, cryptoValue / 2500 * 100) },
+            { pct: totalExpenses > 0 ? 100 : 0 },
+            { pct: Math.min(100, superValue / 10000 * 100) },
+            { pct: Math.min(100, debtPctPaid / 10 * 100) },
+          ] : g === 'C' ? [
+            { pct: Math.min(100, saverValue / 10000 * 100) },
+            { pct: Math.min(100, investorValue / 7500 * 100) },
+            { pct: Math.min(100, cryptoValue / 6000 * 100) },
+            { pct: completedGoals >= 1 || savingsRate >= 10 ? 100 : Math.min(100, savingsRate / 10 * 100) },
+            { pct: Math.min(100, superValue / 25000 * 100) },
+            { pct: Math.min(100, debtPctPaid / 25 * 100) },
+          ] : g === 'B' ? [
+            { pct: Math.min(100, saverValue / 20000 * 100) },
+            { pct: Math.min(100, investorValue / 15000 * 100) },
+            { pct: Math.min(100, cryptoValue / 15000 * 100) },
+            { pct: Math.min(100, savingsRate / 20 * 100) },
+            { pct: Math.min(100, superValue / 50000 * 100) },
+            { pct: Math.min(100, debtPctPaid / 50 * 100) },
+          ] : g === 'A' ? [
+            { pct: Math.min(100, saverValue / 35000 * 100) },
+            { pct: Math.min(100, investorValue / 35000 * 100) },
+            { pct: Math.min(100, cryptoValue / 30000 * 100) },
+            { pct: Math.min(100, completedGoals / 3 * 50 + Math.min(savingsRate, 20) / 20 * 50) },
+            { pct: Math.min(100, superValue / 150000 * 100) },
+            { pct: Math.min(100, debtPctPaid / 75 * 100) },
+          ] : [
+            { pct: Math.min(100, saverValue / 50000 * 100) },
+            { pct: Math.min(100, investorValue / 75000 * 100) },
+            { pct: Math.min(100, cryptoValue / 75000 * 100) },
+            { pct: Math.min(100, savingsRate / 30 * 100) },
+            { pct: Math.min(100, superValue / 250000 * 100) },
+            { pct: Math.min(100, debtPctPaid) },
+          ]
+        return (
+          <VaultRankMap
+            currentRank={rank.grade}
+            rankProgress={xpPct / 100}
+            tracks={liveTracks}
+          />
+        )
+      })()}
 
       {/* Rank Roadmap */}
       <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
