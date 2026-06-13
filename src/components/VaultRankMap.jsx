@@ -295,7 +295,8 @@ export function VaultRankMap({
       </div>
 
       {/* ── STATS + MAP ── */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+      <div style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
 
         {/* LEFT COLUMN — Core + Utility */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 130, flexShrink: 0 }}>
@@ -440,6 +441,7 @@ export function VaultRankMap({
           </div>
         </div>
 
+      </div>
       </div>
 
       {/* ── DETAIL CARD ── */}
