@@ -93,6 +93,46 @@ export function Dashboard({ data, updateData, prices }) {
   }, 0), [data.etfs, prices])
 
   const livePortfolio = cryptoValue + stockValue + etfValue
+  const investorValue = stockValue + etfValue
+  const saverValue = useMemo(() =>
+    data.accounts
+      .filter(a => !['Investment', 'Super', 'Crypto'].includes(a.type))
+      .reduce((s, a) => s + (a.balance ?? 0), 0),
+    [data.accounts]
+  )
+  const debtTotalOrig = useMemo(() => (data.debts ?? []).reduce((s, d) => s + (d.originalAmount || 0), 0), [data.debts])
+  const debtPctPaid = debtTotalOrig > 0 ? Math.min(100, ((debtTotalOrig - totalDebt) / debtTotalOrig) * 100) : 0
+  const savingsRateNum = totalIncome > 0 ? (savings / totalIncome) * 100 : 0
+
+  const medalTally = useMemo(() => {
+    const checks = [
+      { tier: 'bronze',   ok: saverValue >= 5000 },
+      { tier: 'bronze',   ok: saverValue >= totalExpenses * 3 },
+      { tier: 'bronze',   ok: investorValue >= 5000 },
+      { tier: 'bronze',   ok: cryptoValue >= 5000 },
+      { tier: 'bronze',   ok: debtPctPaid >= 25 },
+      { tier: 'bronze',   ok: savingsRateNum >= 30 },
+      { tier: 'silver',   ok: saverValue >= 25000 },
+      { tier: 'silver',   ok: investorValue >= 25000 },
+      { tier: 'silver',   ok: cryptoValue >= 25000 },
+      { tier: 'silver',   ok: debtPctPaid >= 100 },
+      { tier: 'silver',   ok: savingsRateNum >= 50 },
+      { tier: 'silver',   ok: data.goals.filter(g => g.completed).length >= 5 },
+      { tier: 'gold',     ok: saverValue >= 100000 },
+      { tier: 'gold',     ok: investorValue >= 100000 },
+      { tier: 'gold',     ok: cryptoValue >= 100000 },
+      { tier: 'gold',     ok: trueNetWorth >= 250000 },
+      { tier: 'gold',     ok: liquidNetWorth >= 500000 },
+      { tier: 'platinum', ok: liquidNetWorth >= 1000000 },
+    ]
+    return {
+      bronze:   checks.filter(c => c.tier === 'bronze'   && c.ok).length,
+      silver:   checks.filter(c => c.tier === 'silver'   && c.ok).length,
+      gold:     checks.filter(c => c.tier === 'gold'     && c.ok).length,
+      platinum: checks.find(c  => c.tier === 'platinum')?.ok ?? false,
+      total:    checks.filter(c => c.ok).length,
+    }
+  }, [saverValue, totalExpenses, investorValue, cryptoValue, debtPctPaid, savingsRateNum, trueNetWorth, liquidNetWorth, data.goals])
 
   const dailySnapshots = useDailySnapshots()
   const today = new Date().toISOString().slice(0, 10)
@@ -161,6 +201,47 @@ export function Dashboard({ data, updateData, prices }) {
                 {weather.emoji} {weather.temp}°C · Brisbane
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Unlock The Vault progress strip */}
+      <div className="card" style={{ background: 'linear-gradient(135deg, #1a1506 0%, #12100a 100%)', border: '1px solid rgba(240,165,0,0.2)', padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+          {/* Left: icon + label */}
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 24 }}>🏛️</span>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--amber)' }}>UNLOCK THE VAULT</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Platinum Trophy · $1,000,000 liquid net worth</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Centre: percentage + bar */}
+          <div style={{ flex: 1, minWidth: 160, padding: '0 20px' }}>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, color: 'var(--amber)', marginBottom: 4 }}>
+              {Math.min(100, Math.max(0, (liquidNetWorth / 1000000) * 100)).toFixed(2)}%
+            </div>
+            <div style={{ position: 'relative', paddingTop: 8 }}>
+              {[25, 50, 75].map(pct => (
+                <div key={pct} style={{ position: 'absolute', left: `${pct}%`, top: 0, width: 1, height: 8, background: 'rgba(240,165,0,0.35)', transform: 'translateX(-50%)' }} />
+              ))}
+              <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 6 }}>
+                <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, (liquidNetWorth / 1000000) * 100))}%`, background: 'linear-gradient(90deg, #f0a500, #ffc107)', borderRadius: 6, transition: 'width 0.4s ease' }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>{fmt(liquidNetWorth)} of $1,000,000</div>
+          </div>
+
+          {/* Right: medal tally */}
+          <div style={{ flexShrink: 0, textAlign: 'right' }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              🥉 {medalTally.bronze} · 🥈 {medalTally.silver} · 🥇 {medalTally.gold}
+              {medalTally.platinum && <span style={{ marginLeft: 6 }}>✨</span>}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{medalTally.total} / 18 achievements</div>
           </div>
         </div>
       </div>
