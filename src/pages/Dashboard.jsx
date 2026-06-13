@@ -95,6 +95,16 @@ export function Dashboard({ data, updateData, prices }) {
 
   const livePortfolio = cryptoValue + stockValue + etfValue
 
+  const dailySnapshots = useDailySnapshots()
+  const today = new Date().toISOString().slice(0, 10)
+  const yesterdaySnap = dailySnapshots.find(s => s.date < today) ?? null
+  const todayChange = yesterdaySnap && prices?.live
+    ? livePortfolio - (yesterdaySnap.crypto_value + yesterdaySnap.stocks_value + yesterdaySnap.etf_value)
+    : null
+  const todayChangePct = todayChange != null && yesterdaySnap
+    ? (todayChange / Math.abs(yesterdaySnap.crypto_value + yesterdaySnap.stocks_value + yesterdaySnap.etf_value)) * 100
+    : null
+
   useEffect(() => {
     if (!prices?.live) return
     const assetBreakdown = {}
@@ -156,8 +166,8 @@ export function Dashboard({ data, updateData, prices }) {
         </div>
       </div>
 
-      {/* Net worth + stats */}
-      <div className="grid-4">
+      {/* Net worth + stats — row 1 */}
+      <div className="grid-3">
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #1a1d22 0%, #14161a 100%)', borderColor: liquidNetWorth < 0 ? 'rgba(224,91,91,0.25)' : 'rgba(76,175,125,0.2)' }}>
           <div className="stat-label">Liquid Net Worth</div>
           <div className="stat-value" style={{ fontSize: 26, color: liquidNetWorth < 0 ? 'var(--red)' : 'var(--green)' }}>{fmt(liquidNetWorth)}</div>
@@ -173,7 +183,24 @@ export function Dashboard({ data, updateData, prices }) {
           <div className="stat-value" style={{ fontSize: 26, color: trueNetWorth < 0 ? 'var(--red)' : '#5b9ef0' }}>{fmt(trueNetWorth)}</div>
           <div className="stat-sub" style={{ marginTop: 6 }}>Assets minus {fmt(totalDebt)} debt</div>
         </div>
+      </div>
+      {/* Net worth + stats — row 2 */}
+      <div className="grid-3">
         <StatCard label="Monthly Savings" value={fmt(savings)} sub={`${savingsRate}% savings rate`} color={savings >= 0 ? 'var(--green)' : 'var(--red)'} />
+        <div className="stat-card">
+          <div className="stat-label">Today's Change</div>
+          <div className="stat-value" style={{ fontSize: 26, color: todayChange == null ? 'var(--muted)' : todayChange >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            {todayChange == null ? '—' : `${todayChange >= 0 ? '+' : ''}${fmt(todayChange)}`}
+          </div>
+          <div className="stat-sub" style={{ marginTop: 6 }}>
+            {todayChangePct == null ? 'Waiting for data' : `${todayChangePct >= 0 ? '+' : ''}${todayChangePct.toFixed(2)}% vs yesterday`}
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Total Debt</div>
+          <div className="stat-value" style={{ fontSize: 26, color: '#e05b5b' }}>{fmt(totalDebt)}</div>
+          <div className="stat-sub" style={{ marginTop: 6 }}>{data.debts?.length ?? 0} liabilit{data.debts?.length === 1 ? 'y' : 'ies'}</div>
+        </div>
       </div>
 
       {/* Charts row */}
