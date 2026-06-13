@@ -106,20 +106,20 @@ const RANK_REQ_SHORT = {
 }
 
 const NODES = {
-  F: { x: 20, y: 930 },
-  D: { x: 80, y: 760 },
-  C: { x: 20, y: 590 },
-  B: { x: 80, y: 420 },
-  A: { x: 20, y: 250 },
-  S: { x: 80, y: 80  },
+  F: { x: 60,  y: 930 },
+  D: { x: 140, y: 760 },
+  C: { x: 60,  y: 590 },
+  B: { x: 140, y: 420 },
+  A: { x: 60,  y: 250 },
+  S: { x: 140, y: 80  },
 }
 
 const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 50, cy: 845, color: RANK_COLORS.D },
-  { from: 'D', to: 'C', cx: 50, cy: 675, color: RANK_COLORS.C },
-  { from: 'C', to: 'B', cx: 50, cy: 505, color: RANK_COLORS.B },
-  { from: 'B', to: 'A', cx: 50, cy: 335, color: RANK_COLORS.A },
-  { from: 'A', to: 'S', cx: 50, cy: 165, color: RANK_COLORS.S },
+  { from: 'F', to: 'D', cx: 100, cy: 845, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 100, cy: 675, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 100, cy: 505, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 100, cy: 335, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 100, cy: 165, color: RANK_COLORS.S },
 ]
 
 const fmt = (n) => {
@@ -295,125 +295,74 @@ export function VaultRankMap({
       </div>
 
       {/* ── STATS + MAP ── */}
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-      <div style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
 
-        {/* LEFT COLUMN — Core + Utility */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 130, flexShrink: 0 }}>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24', marginBottom: 5 }}>Core</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                 sub="net worth"       />
-              <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`} sub="income retained" />
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginBottom: 5, marginTop: 4 }}>Utility</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
-              <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`} sub="vault mastery"   />
-            </div>
-          </div>
+        {/* LEFT COLUMN */}
+        <div style={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24' }}>Core</div>
+          <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                 sub="net worth"       />
+          <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`} sub="income retained" />
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginTop: 4 }}>Utility</div>
+          <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
+          <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`} sub="vault mastery" />
         </div>
 
-        {/* CENTRE — Scrollable map */}
+        {/* CENTRE MAP */}
         <div style={{ width: 200, flexShrink: 0, position: 'relative', height: 420 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div ref={scrollRef} style={{ height: '100%', width: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <svg width="200" height="1100" viewBox="0 0 100 1100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+            <svg width="200" height="1100" viewBox="0 0 200 1100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
                   <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
                 </filter>
               </defs>
-
-              {/* Segments */}
               {SEGMENTS.map(seg => {
-                const p0 = NODES[seg.from]
-                const p2 = NODES[seg.to]
+                const p0 = NODES[seg.from], p2 = NODES[seg.to]
                 const d = `M${p0.x},${p0.y} Q${seg.cx},${seg.cy} ${p2.x},${p2.y}`
                 const prog = getSegProg(seg)
                 return (
                   <g key={`${seg.from}-${seg.to}`}>
                     <path d={d} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="5" strokeLinecap="round" />
-                    {prog > 0 && (
-                      <path d={d} fill="none" stroke={seg.color} strokeWidth="5" strokeLinecap="round"
-                        pathLength="120" strokeDasharray="120" strokeDashoffset={120 * (1 - prog)} opacity="0.85" />
-                    )}
+                    {prog > 0 && <path d={d} fill="none" stroke={seg.color} strokeWidth="5" strokeLinecap="round" pathLength="120" strokeDasharray="120" strokeDashoffset={120*(1-prog)} opacity="0.85" />}
                   </g>
                 )
               })}
-
-              {/* Progress dot on active segment */}
               {dotPos && (
                 <g filter="url(#vrm-glow)">
                   <circle cx={dotPos.x} cy={dotPos.y} r="5" fill={rankColor} />
                   <circle cx={dotPos.x} cy={dotPos.y} r="2.5" fill="white" />
                 </g>
               )}
-
-              {/* Nodes */}
               {RANK_ORDER.map(grade => {
                 const { x, y } = NODES[grade]
                 const color = RANK_COLORS[grade]
                 const state = nodeState(grade)
                 const isSelected = selectedRank === grade
-                const isLeft = x < 50
-                const labelX = isLeft ? 37 : 63
-                const anchor = isLeft ? 'start' : 'end'
                 const nameOp = state === 'current' ? 0.9 : state === 'next' ? 0.55 : state === 'done' ? 0.45 : 0.22
-
                 return (
                   <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
-                    {state === 'current' && (
-                      <>
-                        <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
-                          <animate attributeName="r" values="14;22;22" dur="2.5s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
-                        </circle>
-                        <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1" opacity="0">
-                          <animate attributeName="r" values="14;26;26" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
-                          <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
-                        </circle>
-                      </>
-                    )}
-                    {state === 'next' && (
-                      <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />
-                    )}
-                    {isSelected && state !== 'current' && (
-                      <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1.5"
-                        strokeDasharray="4 3" opacity="0.5" />
-                    )}
-                    {state === 'done' && (
-                      <circle cx={x} cy={y} r="14" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />
-                    )}
-                    {state === 'current' && (
-                      <circle cx={x} cy={y} r="14" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)">
-                        <animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" />
+                    {state === 'current' && (<>
+                      <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
+                        <animate attributeName="r" values="14;22;22" dur="2.5s" repeatCount="indefinite" />
+                        <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
                       </circle>
-                    )}
-                    {state === 'next' && (
-                      <circle cx={x} cy={y} r="14" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />
-                    )}
-                    {state === 'locked' && (
-                      <circle cx={x} cy={y} r="14" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />
-                    )}
-                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle"
-                      fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="8" fill={color}
-                      opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>
-                      {grade}
-                    </text>
-                    <text x={labelX} y={y - 8} textAnchor={anchor}
-                      fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="11" fill={color} opacity={nameOp}>
-                      {RANK_DATA[grade].name}
-                    </text>
-                    <text x={labelX} y={y + 8} textAnchor={anchor}
-                      fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="9"
-                      fill="rgba(255,255,255,0.45)" opacity={nameOp}>
-                      {RANK_REQ_SHORT[grade]}
-                    </text>
+                      <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1" opacity="0">
+                        <animate attributeName="r" values="14;26;26" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                        <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                      </circle>
+                    </>)}
+                    {state === 'next' && <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />}
+                    {isSelected && state !== 'current' && <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />}
+                    {state === 'done' && <circle cx={x} cy={y} r="14" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />}
+                    {state === 'current' && <circle cx={x} cy={y} r="14" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)"><animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" /></circle>}
+                    {state === 'next' && <circle cx={x} cy={y} r="14" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />}
+                    {state === 'locked' && <circle cx={x} cy={y} r="14" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />}
+                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="12" fill={color} opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>{grade}</text>
+                    <text x={x} y={y - 20} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="10" fill={color} opacity={nameOp}>{RANK_DATA[grade].name}</text>
+                    <text x={x} y={y + 20} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="8" fill="rgba(255,255,255,0.45)" opacity={nameOp}>{RANK_REQ_SHORT[grade]}</text>
                   </g>
                 )
               })}
@@ -421,27 +370,18 @@ export function VaultRankMap({
           </div>
         </div>
 
-        {/* RIGHT COLUMN — Offense + Defence */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 130, flexShrink: 0 }}>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80', marginBottom: 5 }}>Offense</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
-              <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}             sub="total portfolio" />
-              <Tile color="#4ade80" label="Invested" value={fmt(invested)}               sub="cost basis"      />
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginBottom: 5, marginTop: 4 }}>Defence</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <Tile color="#f87171" label="Debt"       value={fmt(debt)}                    sub="total debt"     />
-              <Tile color="#f87171" label="Defence"    value={`${Math.round(defencePct)}%`} sub="emergency fund" />
-              <Tile color="#f87171" label="Debt Ratio" value={`${Math.round(debtRatio)}%`}  sub="debt vs assets" />
-            </div>
-          </div>
+        {/* RIGHT COLUMN */}
+        <div style={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80' }}>Offense</div>
+          <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
+          <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}             sub="total portfolio" />
+          <Tile color="#4ade80" label="Invested" value={fmt(invested)}               sub="cost basis"      />
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#f87171', marginTop: 4 }}>Defence</div>
+          <Tile color="#f87171" label="Debt"       value={fmt(debt)}                    sub="total debt"     />
+          <Tile color="#f87171" label="Defence"    value={`${Math.round(defencePct)}%`} sub="emergency fund" />
+          <Tile color="#f87171" label="Debt Ratio" value={`${Math.round(debtRatio)}%`}  sub="debt vs assets" />
         </div>
 
-      </div>
       </div>
 
       {/* ── DETAIL CARD ── */}
