@@ -336,6 +336,7 @@ export function DailyPerformance({ data, prices }) {
             No history yet — snapshots are taken daily when prices load
           </div>
         ) : (
+          <>
           <div className="desktop-table table-scroll-wrapper">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -394,6 +395,7 @@ export function DailyPerformance({ data, prices }) {
               </div>
             ))}
           </div>
+          </>
         )}
 
         {histStats && (
