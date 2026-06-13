@@ -446,7 +446,7 @@ export function Portfolio({ data, updateData, prices }) {
   }, [snapshots, histRange])
 
   // Growth Projection: history + forward compound projection
-  const { projChartData, projMilestones, projFinalValues } = useMemo(() => {
+  const { projChartData, projMilestones, projFinalValues, projStageMarkers } = useMemo(() => {
     const cryptoMonthlyRate = Math.pow(1 + projRate.crypto / 100, 1 / 12) - 1
     const etfMonthlyRate    = Math.pow(1 + projRate.etfs   / 100, 1 / 12) - 1
     const stockMonthlyRate  = Math.pow(1 + projRate.stocks / 100, 1 / 12) - 1
@@ -470,11 +470,11 @@ export function Portfolio({ data, updateData, prices }) {
     }
 
     // Build quarterly projection points + find milestones
-    const TARGETS = [50000, 100000, 250000, 500000, 1000000, 2000000, 5000000]
+    const TARGETS = [50000, 100000, 250000, 500000, 750000, 1000000, 2000000, 5000000]
     const trackers = [
-      { projKey: 'projCrypto', color: '#f0a500', current: cryptoTotal, found: null },
-      { projKey: 'projStocks', color: '#5b9ef0', current: stockTotal,  found: null },
-      { projKey: 'projEtfs',   color: '#4caf7d', current: etfTotal,    found: null },
+      { projKey: 'projCrypto', color: '#f0a500', current: cryptoTotal, found: [] },
+      { projKey: 'projStocks', color: '#5b9ef0', current: stockTotal,  found: [] },
+      { projKey: 'projEtfs',   color: '#4caf7d', current: etfTotal,    found: [] },
     ]
     let c = cryptoTotal, s = stockTotal, e = etfTotal
     const proj = []
@@ -491,16 +491,17 @@ export function Portfolio({ data, updateData, prices }) {
         const vals = { projCrypto: Math.round(c), projStocks: Math.round(s), projEtfs: Math.round(e) }
         proj.push({ label, ...vals })
 
-        // Milestone detection per asset (earliest unmet only)
+        // Milestone detection per asset (up to 3 per class)
         for (const t of trackers) {
-          if (t.found) continue
+          if (t.found.length >= 3) continue
           for (const target of TARGETS) {
-            if (t.current >= target) continue   // already exceeded
+            if (t.current >= target) continue
+            if (t.found.some(f => f.y === target)) continue
             if (vals[t.projKey] >= target) {
               const labelStr = target >= 1_000_000
                 ? `$${(target / 1_000_000).toFixed(target % 1_000_000 === 0 ? 0 : 1)}M`
                 : `$${(target / 1000)}k`
-              t.found = { x: label, y: target, color: t.color, projKey: t.projKey, labelStr }
+              t.found.push({ x: label, y: target, color: t.color, projKey: t.projKey, labelStr })
               break
             }
           }
@@ -508,10 +509,29 @@ export function Portfolio({ data, updateData, prices }) {
       }
     }
 
+    // Stage change markers: one vertical line per unique fromYear > 0 within range
+    const seenLabels = new Set()
+    const projStageMarkers = []
+    for (const stages of [projStages.crypto, projStages.etfs, projStages.stocks]) {
+      for (const stage of stages) {
+        if (stage.fromYear <= 0) continue
+        const targetMonth = stage.fromYear * 12
+        if (targetMonth > projYears * 12) continue
+        const d = new Date(now)
+        d.setMonth(d.getMonth() + targetMonth)
+        const label = d.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+        if (!seenLabels.has(label)) {
+          seenLabels.add(label)
+          projStageMarkers.push({ x: label, fromYear: stage.fromYear })
+        }
+      }
+    }
+
     return {
       projChartData: [...hist, todayPt, ...proj],
-      projMilestones: trackers.map(t => t.found).filter(Boolean),
+      projMilestones: trackers.flatMap(t => t.found),
       projFinalValues: { crypto: Math.round(c), stocks: Math.round(s), etfs: Math.round(e) },
+      projStageMarkers,
     }
   }, [snapshots, cryptoTotal, stockTotal, etfTotal, projRate.crypto, projRate.etfs, projRate.stocks, projYears, projStages]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -747,6 +767,11 @@ export function Portfolio({ data, updateData, prices }) {
             <Line type="monotone" dataKey="projEtfs"   name="ETFs (projected)"   stroke="#4caf7d" strokeWidth={2} strokeDasharray="5 5" dot={false} connectNulls={false} />
             {/* Today marker */}
             <ReferenceLine x="Today" stroke="var(--muted)" strokeDasharray="3 3" label={{ value: 'Today', position: 'top', fill: 'var(--muted)', fontSize: 10 }} />
+            {/* Stage change markers */}
+            {projStageMarkers.map((sm, i) => (
+              <ReferenceLine key={`stage-${i}`} x={sm.x} stroke="rgba(240,165,0,0.5)" strokeDasharray="4 4"
+                label={{ value: `Yr ${sm.fromYear} ↑`, position: 'top', fill: '#f0a500', fontSize: 9 }} />
+            ))}
             {/* Milestone dots */}
             {projMilestones.map((m, i) => (
               <ReferenceDot key={i} x={m.x} y={m.y} r={5} fill={m.color} stroke="var(--surface)" strokeWidth={2}
