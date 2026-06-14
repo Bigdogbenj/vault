@@ -61,7 +61,15 @@ export function DailyPerformance({ data, prices }) {
   const totalPct = totalChange != null && yesterdaySnap.net_worth !== 0
     ? (totalChange / Math.abs(yesterdaySnap.net_worth)) * 100 : null
 
-  const cryptoChange = yesterdaySnap && livePricesLoaded ? currentCrypto - (yesterdaySnap.crypto_value ?? 0) : null
+  const cryptoChange = useMemo(() => {
+    if (!livePricesLoaded) return null
+    return data.crypto.reduce((s, c) => {
+      const price = prices?.crypto?.[c.coinId]
+      const val = c.amount * (price?.aud ?? 0)
+      const pct = price?.usd_24h_change ?? 0
+      return s + (val / (1 + pct / 100) * (pct / 100))
+    }, 0)
+  }, [data.crypto, prices, livePricesLoaded])
   const stocksChange = yesterdaySnap && livePricesLoaded ? currentStocks - (yesterdaySnap.stocks_value ?? 0) : null
   const etfChange    = yesterdaySnap && livePricesLoaded ? currentEtfs   - (yesterdaySnap.etf_value   ?? 0) : null
 
@@ -106,12 +114,25 @@ export function DailyPerformance({ data, prices }) {
     }).sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
   }
 
-  const cryptoRows = useMemo(() => makeRows(
-    data.crypto.filter(c => c.amount > 0),
-    c => c.coinId,
-    c => c.amount * (prices?.crypto?.[c.coinId]?.aud ?? 0),
-    c => c.symbol
-  ), [data.crypto, prices, yesterdaySnap, livePricesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  const cryptoRows = useMemo(() => {
+    return data.crypto
+      .filter(c => c.amount > 0)
+      .map(c => {
+        const price = prices?.crypto?.[c.coinId]
+        const val = c.amount * (price?.aud ?? 0)
+        const pct = price?.usd_24h_change ?? null
+        const delta = pct != null ? val / (1 + pct / 100) * (pct / 100) : null
+        return {
+          key: c.coinId,
+          name: c.name,
+          symbol: c.symbol,
+          val,
+          delta,
+          pct,
+        }
+      })
+      .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
+  }, [data.crypto, prices])
 
   const stocksRows = useMemo(() => makeRows(
     data.stocks.filter(s => s.shares > 0),
