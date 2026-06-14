@@ -211,7 +211,6 @@ function computeTrackLevel(track, value, data, savingsRate, completedGoals, netW
   let lvl = -1
   for (let i = 0; i < levels.length; i++) {
     if (value >= levels[i].threshold) lvl = i
-    else break
   }
   return lvl
 }
@@ -513,9 +512,17 @@ function TrackCard({ track, value, level, onClick }) {
       onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 13 }}>{track.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{track.desc}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+            background: `${color}18`, border: `1px solid ${color}30`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16,
+          }}>{track.icon}</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13 }}>{track.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{track.desc}</div>
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           {displayValue && <div style={{ fontSize: 13, fontWeight: 700, color }}>{displayValue}</div>}
