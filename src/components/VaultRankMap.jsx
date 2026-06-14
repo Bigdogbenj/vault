@@ -302,9 +302,11 @@ export function VaultRankMap({
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24' }}>Core</div>
           <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                 sub="net worth"       />
           <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`} sub="income retained" />
+          <Tile color="#fbbf24" label="Days Active" value={`${daysActive}d`}               sub="days active"     />
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginTop: 4 }}>Utility</div>
           <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
           <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`} sub="vault mastery" />
+          <Tile color="#60a5fa" label="Yield"     value={`${Math.round(yieldPct)}%`}       sub="income retained" />
         </div>
 
         {/* CENTRE MAP */}
@@ -400,10 +402,10 @@ export function VaultRankMap({
             color: selColor, flexShrink: 0,
           }}>{selectedRank}</div>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: selColor, opacity: 0.7, marginBottom: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: selColor, opacity: 0.7, marginBottom: 1 }}>
               {cardLabel()}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{selRD.name}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>{selRD.name}</div>
           </div>
         </div>
 
@@ -412,10 +414,10 @@ export function VaultRankMap({
           {mergedTracks.map((t, i) => (
             <div key={i} style={{
               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '5px 7px',
+              borderRadius: 9, padding: '10px 12px',
             }}>
-              <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>{t.n}</div>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)', marginBottom: 5, lineHeight: 1.3 }}>{t.v}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 4 }}>{t.n}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 5, lineHeight: 1.3 }}>{t.v}</div>
               <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 2 }}>
                 <div style={{
                   height: '100%', borderRadius: 2,
@@ -428,7 +430,7 @@ export function VaultRankMap({
         </div>
 
         {/* Bonus achievements */}
-        <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginBottom: 8 }}>
           Bonus Achievements
         </div>
 
@@ -453,11 +455,11 @@ export function VaultRankMap({
                 borderRadius: 9, padding: '9px 8px', textAlign: 'center',
                 opacity: allDone ? 1 : 0.35,
               }}>
-                <div style={{ fontSize: 18, marginBottom: 4 }}>{allDone ? b.icon : '🔒'}</div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text)', marginBottom: 2, lineHeight: 1.3 }}>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{allDone ? b.icon : '🔒'}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 2, lineHeight: 1.3 }}>
                   {allDone ? b.title : '???'}
                 </div>
-                <div style={{ fontSize: 8, color: 'var(--muted)', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
                   {allDone ? b.desc : 'Complete tracks to reveal'}
                 </div>
               </div>
