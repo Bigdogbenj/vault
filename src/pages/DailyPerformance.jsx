@@ -57,10 +57,6 @@ export function DailyPerformance({ data, prices }) {
     [data.etfs, prices]
   )
 
-  const totalChange = yesterdaySnap && livePricesLoaded ? currentTotal - yesterdaySnap.net_worth : null
-  const totalPct = totalChange != null && yesterdaySnap.net_worth !== 0
-    ? (totalChange / Math.abs(yesterdaySnap.net_worth)) * 100 : null
-
   const cryptoChange = useMemo(() => {
     if (!livePricesLoaded) return null
     return data.crypto.reduce((s, c) => {
@@ -70,8 +66,33 @@ export function DailyPerformance({ data, prices }) {
       return s + (val / (1 + pct / 100) * (pct / 100))
     }, 0)
   }, [data.crypto, prices, livePricesLoaded])
-  const stocksChange = yesterdaySnap && livePricesLoaded ? currentStocks - (yesterdaySnap.stocks_value ?? 0) : null
-  const etfChange    = yesterdaySnap && livePricesLoaded ? currentEtfs   - (yesterdaySnap.etf_value   ?? 0) : null
+
+  const stocksChange = useMemo(() => {
+    if (!livePricesLoaded) return null
+    return data.stocks.reduce((s, st) => {
+      const price = prices?.stocks?.[st.ticker]
+      const val = st.shares * (price?.aud ?? 0)
+      const pct = price?.change24h ?? 0
+      return s + (val / (1 + pct / 100) * (pct / 100))
+    }, 0)
+  }, [data.stocks, prices, livePricesLoaded])
+
+  const etfChange = useMemo(() => {
+    if (!livePricesLoaded) return null
+    return data.etfs.reduce((s, e) => {
+      const price = prices?.etfs?.[e.ticker]
+      const val = e.units * (price?.aud ?? 0)
+      const pct = price?.change24h ?? 0
+      return s + (val / (1 + pct / 100) * (pct / 100))
+    }, 0)
+  }, [data.etfs, prices, livePricesLoaded])
+
+  const totalChange = livePricesLoaded
+    ? (cryptoChange ?? 0) + (stocksChange ?? 0) + (etfChange ?? 0)
+    : null
+  const totalPct = totalChange != null && currentTotal > 0
+    ? (totalChange / (currentTotal - totalChange)) * 100
+    : null
 
   const topCategory = useMemo(() => {
     if (!yesterdaySnap || !livePricesLoaded) return null
@@ -134,17 +155,31 @@ export function DailyPerformance({ data, prices }) {
       .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
   }, [data.crypto, prices])
 
-  const stocksRows = useMemo(() => makeRows(
-    data.stocks.filter(s => s.shares > 0),
-    s => s.ticker,
-    s => s.shares * (prices?.stocks?.[s.ticker]?.aud ?? 0)
-  ), [data.stocks, prices, yesterdaySnap, livePricesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  const stocksRows = useMemo(() => {
+    return data.stocks
+      .filter(s => s.shares > 0)
+      .map(st => {
+        const price = prices?.stocks?.[st.ticker]
+        const val = st.shares * (price?.aud ?? 0)
+        const pct = price?.change24h ?? null
+        const delta = pct != null ? val / (1 + pct / 100) * (pct / 100) : null
+        return { key: st.ticker, name: st.name, symbol: st.ticker, val, delta, pct }
+      })
+      .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
+  }, [data.stocks, prices])
 
-  const etfRows = useMemo(() => makeRows(
-    data.etfs.filter(e => e.units > 0),
-    e => e.ticker,
-    e => e.units * (prices?.etfs?.[e.ticker]?.aud ?? 0)
-  ), [data.etfs, prices, yesterdaySnap, livePricesLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  const etfRows = useMemo(() => {
+    return data.etfs
+      .filter(e => e.units > 0)
+      .map(e => {
+        const price = prices?.etfs?.[e.ticker]
+        const val = e.units * (price?.aud ?? 0)
+        const pct = price?.change24h ?? null
+        const delta = pct != null ? val / (1 + pct / 100) * (pct / 100) : null
+        return { key: e.ticker, name: e.name, symbol: e.ticker, val, delta, pct }
+      })
+      .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
+  }, [data.etfs, prices])
 
   const history = useMemo(() => {
     const last30 = snapshots.slice(0, 30)
