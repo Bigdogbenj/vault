@@ -55,43 +55,43 @@ export function VaultRankPage({ data, updateData, prices }) {
       { pct: (data.debts ?? []).length > 0 ? 100 : 0 },
     ]
     if (g === 'D') return [
-      { pct: Math.min(100, saverValue / 5000 * 100) },
-      { pct: Math.min(100, investorValue / 2500 * 100) },
-      { pct: Math.min(100, cryptoValue / 2500 * 100) },
-      { pct: totalExpenses > 0 ? 100 : 0 },
-      { pct: Math.min(100, superValue / 10000 * 100) },
+      { pct: Math.min(100, saverValue / 10000 * 100) },
+      { pct: Math.min(100, investorValue / 10000 * 100) },
+      { pct: Math.min(100, cryptoValue / 10000 * 100) },
+      { pct: Math.min(100, savingsRate / 25 * 100) },
+      { pct: Math.min(100, superValue / 15000 * 100) },
       { pct: Math.min(100, debtPctPaid / 10 * 100) },
     ]
     if (g === 'C') return [
-      { pct: Math.min(100, saverValue / 10000 * 100) },
-      { pct: Math.min(100, investorValue / 7500 * 100) },
-      { pct: Math.min(100, cryptoValue / 6000 * 100) },
-      { pct: completedGoals >= 1 || savingsRate >= 10 ? 100 : Math.min(100, savingsRate / 10 * 100) },
-      { pct: Math.min(100, superValue / 25000 * 100) },
+      { pct: Math.min(100, saverValue / 20000 * 100) },
+      { pct: Math.min(100, investorValue / 25000 * 100) },
+      { pct: Math.min(100, cryptoValue / 25000 * 100) },
+      { pct: Math.min(100, savingsRate / 35 * 100) },
+      { pct: Math.min(100, superValue / 40000 * 100) },
       { pct: Math.min(100, debtPctPaid / 25 * 100) },
     ]
     if (g === 'B') return [
-      { pct: Math.min(100, saverValue / 20000 * 100) },
-      { pct: Math.min(100, investorValue / 15000 * 100) },
-      { pct: Math.min(100, cryptoValue / 15000 * 100) },
-      { pct: Math.min(100, savingsRate / 20 * 100) },
-      { pct: Math.min(100, superValue / 50000 * 100) },
-      { pct: Math.min(100, debtPctPaid / 50 * 100) },
+      { pct: Math.min(100, saverValue / 40000 * 100) },
+      { pct: Math.min(100, investorValue / 60000 * 100) },
+      { pct: Math.min(100, cryptoValue / 50000 * 100) },
+      { pct: Math.min(100, savingsRate / 45 * 100) },
+      { pct: Math.min(100, superValue / 80000 * 100) },
+      { pct: Math.min(100, debtPctPaid / 40 * 100) },
     ]
     if (g === 'A') return [
-      { pct: Math.min(100, saverValue / 35000 * 100) },
-      { pct: Math.min(100, investorValue / 35000 * 100) },
-      { pct: Math.min(100, cryptoValue / 30000 * 100) },
-      { pct: Math.min(100, completedGoals / 3 * 50 + Math.min(savingsRate, 20) / 20 * 50) },
+      { pct: Math.min(100, saverValue / 80000 * 100) },
+      { pct: Math.min(100, investorValue / 120000 * 100) },
+      { pct: Math.min(100, cryptoValue / 100000 * 100) },
+      { pct: Math.min(100, savingsRate / 55 * 100) },
       { pct: Math.min(100, superValue / 150000 * 100) },
-      { pct: Math.min(100, debtPctPaid / 75 * 100) },
+      { pct: Math.min(100, debtPctPaid / 60 * 100) },
     ]
     return [
-      { pct: Math.min(100, saverValue / 50000 * 100) },
-      { pct: Math.min(100, investorValue / 75000 * 100) },
-      { pct: Math.min(100, cryptoValue / 75000 * 100) },
-      { pct: Math.min(100, savingsRate / 30 * 100) },
-      { pct: Math.min(100, superValue / 250000 * 100) },
+      { pct: Math.min(100, saverValue / 150000 * 100) },
+      { pct: Math.min(100, investorValue / 250000 * 100) },
+      { pct: Math.min(100, cryptoValue / 200000 * 100) },
+      { pct: Math.min(100, savingsRate / 65 * 100) },
+      { pct: Math.min(100, superValue / 280000 * 100) },
       { pct: Math.min(100, debtPctPaid) },
     ]
   }, [rank.grade, saverValue, investorValue, cryptoValue, savingsRate, superValue, debtPctPaid, totalExpenses, data.goals, data.debts])
@@ -132,11 +132,11 @@ export function VaultRankPage({ data, updateData, prices }) {
 
 const RANK_REQ = {
   F: 'Starting rank',
-  D: 'Avg level 2 · Positive net worth',
-  C: 'Avg level 3 · Positive net worth',
-  B: 'Avg level 4 · $30,000 net worth',
-  A: 'Avg level 5 · $80,000 net worth',
-  S: 'Avg level 5 · $300,000 net worth · All tracks level 5+',
+  D: '$10k NW · $10k banked',
+  C: '$50k NW · $50k invested',
+  B: '$150k NW · $100k invested · $75k super',
+  A: '$300k NW · debt <30% assets',
+  S: '$600k NW · 3× L6 tracks · $500k super',
 }
 
 function RankRoadmap({ rank, nextRank, avgLevel, trueNetWorth }) {
