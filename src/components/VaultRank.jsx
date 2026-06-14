@@ -9,12 +9,12 @@ const TRACKS = [
     desc: 'Bank account balances',
     color: '#5b9ef0',
     levels: [
-      { name: 'First Buffer',    threshold: 5000 },
-      { name: 'Safety Net',      threshold: 10000 },
-      { name: 'Emergency Ready', threshold: 20000 },
-      { name: 'Cash Fortress',   threshold: 35000 },
-      { name: 'War Chest',       threshold: 50000 },
-      { name: 'Liquidity King',  threshold: 100000 },
+      { name: 'First Buffer',    threshold: 10000  },
+      { name: 'Safety Net',      threshold: 20000  },
+      { name: 'Emergency Ready', threshold: 40000  },
+      { name: 'Cash Fortress',   threshold: 80000  },
+      { name: 'War Chest',       threshold: 150000 },
+      { name: 'Liquidity King',  threshold: 300000 },
     ],
   },
   {
@@ -24,12 +24,12 @@ const TRACKS = [
     desc: 'Stocks + ETF value',
     color: '#4caf7d',
     levels: [
-      { name: 'First Position',     threshold: 2500 },
-      { name: 'Portfolio Builder',  threshold: 7500 },
-      { name: 'Market Participant', threshold: 15000 },
-      { name: 'Equity Accumulator', threshold: 35000 },
-      { name: 'Index Lord',         threshold: 75000 },
-      { name: 'Market Sovereign',   threshold: 150000 },
+      { name: 'First Position',     threshold: 10000  },
+      { name: 'Portfolio Builder',  threshold: 25000  },
+      { name: 'Market Participant', threshold: 60000  },
+      { name: 'Equity Accumulator', threshold: 120000 },
+      { name: 'Index Lord',         threshold: 250000 },
+      { name: 'Market Sovereign',   threshold: 400000 },
     ],
   },
   {
@@ -39,12 +39,12 @@ const TRACKS = [
     desc: 'Total crypto value',
     color: '#a87ef0',
     levels: [
-      { name: 'Bag Holder',       threshold: 2500 },
-      { name: 'Diamond Hands',    threshold: 6000 },
-      { name: 'On-Chain',         threshold: 15000 },
-      { name: 'Whale Watching',   threshold: 30000 },
-      { name: 'Actual Whale',     threshold: 75000 },
-      { name: 'Crypto Sovereign', threshold: 150000 },
+      { name: 'Bag Holder',       threshold: 10000  },
+      { name: 'Diamond Hands',    threshold: 25000  },
+      { name: 'On-Chain',         threshold: 50000  },
+      { name: 'Whale Watching',   threshold: 100000 },
+      { name: 'Actual Whale',     threshold: 200000 },
+      { name: 'Crypto Sovereign', threshold: 350000 },
     ],
   },
   {
@@ -69,12 +69,12 @@ const TRACKS = [
     desc: 'Superannuation balance',
     color: '#f07a30',
     levels: [
-      { name: 'Seeds Planted',    threshold: 10000 },
-      { name: 'Compounding',      threshold: 25000 },
-      { name: 'Long Game',        threshold: 50000 },
-      { name: 'Retirement Aware', threshold: 100000 },
-      { name: 'Future Proofed',   threshold: 250000 },
-      { name: 'Set for Life',     threshold: 500000 },
+      { name: 'Seeds Planted',    threshold: 15000  },
+      { name: 'Compounding',      threshold: 40000  },
+      { name: 'Long Game',        threshold: 80000  },
+      { name: 'Retirement Aware', threshold: 150000 },
+      { name: 'Future Proofed',   threshold: 280000 },
+      { name: 'Set for Life',     threshold: 450000 },
     ],
   },
   {
@@ -84,23 +84,23 @@ const TRACKS = [
     desc: '% of total debt paid off',
     color: '#e05b5b',
     levels: [
-      { name: 'Debt Aware',        threshold: -1 },
-      { name: 'Chipping Away',     threshold: 10 },
-      { name: 'Momentum',          threshold: 25 },
-      { name: 'Halfway There',     threshold: 50 },
-      { name: 'The Final Stretch', threshold: 75 },
+      { name: 'Debt Aware',        threshold: -1  },
+      { name: 'Chipping Away',     threshold: 10  },
+      { name: 'Momentum',          threshold: 25  },
+      { name: 'Halfway There',     threshold: 50  },
+      { name: 'The Final Stretch', threshold: 75  },
       { name: 'Debt Free',         threshold: 100 },
     ],
   },
 ]
 
 export const OVERALL_RANKS = [
-  { grade: 'F', title: 'Broke Boy',     minAvg: 0, minNW: -Infinity },
-  { grade: 'D', title: 'Scraping By',   minAvg: 2, minNW: 0 },
-  { grade: 'C', title: 'Getting There', minAvg: 3, minNW: 0 },
-  { grade: 'B', title: 'Wealth Aware',  minAvg: 4, minNW: 30000 },
-  { grade: 'A', title: 'Wealth Builder',minAvg: 5, minNW: 80000 },
-  { grade: 'S', title: 'The Vault',     minAvg: 5, minNW: 300000, requireAllFive: true },
+  { grade: 'F', title: 'Broke Boy',      minAvg: 0, minNW: -Infinity },
+  { grade: 'D', title: 'Scraping By',    minAvg: 2, minNW: 10000  },
+  { grade: 'C', title: 'Getting There',  minAvg: 3, minNW: 50000  },
+  { grade: 'B', title: 'Wealth Aware',   minAvg: 4, minNW: 150000 },
+  { grade: 'A', title: 'Wealth Builder', minAvg: 5, minNW: 300000 },
+  { grade: 'S', title: 'The Vault',      minAvg: 5, minNW: 600000, requireAllFive: true },
 ]
 
 export const RANK_MESSAGES = {
@@ -168,10 +168,10 @@ function getLevelRequirement(track, idx) {
     const reqs = [
       'Just using Vault',
       'Budget has both income & expenses entered',
-      '1+ goal completed or 10%+ savings rate',
-      '20%+ savings rate',
+      '1+ goal completed or 25%+ savings rate',
+      '35%+ savings rate',
       '3+ goals completed & positive net worth',
-      '30%+ savings rate & all other tracks at Level 3+',
+      '45%+ savings rate & all other tracks at Level 3+',
     ]
     return reqs[idx]
   }
@@ -188,10 +188,10 @@ function computeTrackLevel(track, value, data, savingsRate, completedGoals, netW
     const hasExpenses = data.budget.expenses.some(e => (e.amount ?? 0) > 0)
     if (!hasIncome || !hasExpenses) return 0
     let lvl = 1
-    if (completedGoals >= 1 || savingsRate >= 10) lvl = Math.max(lvl, 2)
-    if (savingsRate >= 20) lvl = Math.max(lvl, 3)
+    if (completedGoals >= 1 || savingsRate >= 25) lvl = Math.max(lvl, 2)
+    if (savingsRate >= 35) lvl = Math.max(lvl, 3)
     if (completedGoals >= 3 && netWorth > 0) lvl = Math.max(lvl, 4)
-    if (savingsRate >= 30 && otherTrackLevels && otherTrackLevels.every(l => l >= 2)) lvl = Math.max(lvl, 5)
+    if (savingsRate >= 45 && otherTrackLevels && otherTrackLevels.every(l => l >= 2)) lvl = Math.max(lvl, 5)
     return lvl
   }
   if (track.id === 'debt') {
