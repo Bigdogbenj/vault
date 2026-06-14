@@ -37,6 +37,31 @@ export function VaultRankPage({ data, updateData, prices }) {
     return Math.floor((Date.now() - first.getTime()) / 86400000)
   }, [snapshots])
 
+  const daysInRank = useMemo(() => {
+    const achieved = data.rankAchievedAt
+    if (!achieved) return 0
+    return Math.floor((Date.now() - new Date(achieved).getTime()) / 86400000)
+  }, [data.rankAchievedAt])
+
+  const rankHistory = data.rankHistory ?? []
+
+  useEffect(() => {
+    const prevGrade = data.currentRankGrade
+    if (!prevGrade || prevGrade === rank.grade) return
+    const daysSpent = Math.floor((Date.now() - new Date(data.rankAchievedAt).getTime()) / 86400000)
+    const newHistory = [...(data.rankHistory ?? []), {
+      grade: prevGrade,
+      promotedTo: rank.grade,
+      achievedAt: new Date().toISOString(),
+      daysSpent,
+    }]
+    updateData({
+      rankAchievedAt: new Date().toISOString(),
+      rankHistory: newHistory,
+      currentRankGrade: rank.grade,
+    })
+  }, [rank.grade])
+
   const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
   const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
   const portfolioTotal = investorValue + cryptoValue
@@ -114,6 +139,8 @@ export function VaultRankPage({ data, updateData, prices }) {
         powerTotal={portfolioTotal}
         prestigeScore={prestigeScore}
         debtRatio={debtRatio}
+        daysInRank={daysInRank}
+        rankHistory={rankHistory}
       />
 
       <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
@@ -125,7 +152,7 @@ export function VaultRankPage({ data, updateData, prices }) {
         debtPctPaid={debtPctPaid} trueNetWorth={trueNetWorth} superValue={superValue}
         liquidNetWorth={liquidNetWorth} updateData={updateData}
       />
-      <MilestoneHistory log={data.achievementLog} />
+      <MilestoneHistory log={data.achievementLog} rankHistory={rankHistory} />
     </div>
   )
 }
@@ -404,8 +431,21 @@ function AchievementsWall({ saverValue, investorValue, cryptoValue, totalExpense
   )
 }
 
-function MilestoneHistory({ log }) {
-  const sorted = [...(log ?? [])].sort((a, b) => new Date(a.unlockedAt) - new Date(b.unlockedAt))
+function MilestoneHistory({ log, rankHistory }) {
+  const achievementEntries = [...(log ?? [])].map(e => ({ ...e, entryType: 'achievement' }))
+  const rankEntries = (rankHistory ?? []).map(e => ({
+    id: `rank-${e.grade}-${e.promotedTo}`,
+    entryType: 'rank',
+    icon: { F:'🗑️', D:'🪙', C:'🏠', B:'🏢', A:'🏆', S:'🏦' }[e.promotedTo] ?? '⭐',
+    name: `Promoted to Rank ${e.promotedTo}`,
+    tier: 'rank',
+    unlockedAt: e.achievedAt,
+    daysSpent: e.daysSpent,
+    grade: e.grade,
+    promotedTo: e.promotedTo,
+  }))
+  const sorted = [...achievementEntries, ...rankEntries]
+    .sort((a, b) => new Date(a.unlockedAt) - new Date(b.unlockedAt))
 
   return (
     <div className="card">
@@ -452,8 +492,13 @@ function MilestoneHistory({ log }) {
                     {TIER_META[entry.tier]?.label ?? entry.tier}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0, whiteSpace: 'nowrap', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', flexShrink: 0, whiteSpace: 'nowrap', marginTop: 2, textAlign: 'right' }}>
                   {dateStr}
+                  {entry.entryType === 'rank' && (
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      Spent {entry.daysSpent} days at Rank {entry.grade}
+                    </div>
+                  )}
                 </div>
               </div>
             )

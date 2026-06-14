@@ -148,6 +148,7 @@ export function VaultRankMap({
   netWorth, invested, debt, savingsRate, daysActive,
   liquidityMonths, attackPerMonth, defencePct, yieldPct,
   powerTotal, prestigeScore, debtRatio,
+  daysInRank, rankHistory,
 }) {
   const [selectedRank, setSelectedRank] = useState(currentRank)
   const scrollRef = useRef(null)
@@ -275,6 +276,12 @@ export function VaultRankMap({
           </div>
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--muted)', marginTop: 2 }}>
             Prestige
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginTop: 4, textAlign: 'center' }}>
+            {daysInRank ?? 0}d
+          </div>
+          <div style={{ fontSize: 9, color: 'var(--muted)', opacity: 0.6, textAlign: 'center' }}>
+            in rank
           </div>
         </div>
       </div>
