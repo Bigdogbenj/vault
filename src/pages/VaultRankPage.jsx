@@ -69,16 +69,24 @@ export function VaultRankPage({ data, updateData, prices }) {
   const debtRatio = (totalDebt + totalBalance) > 0 ? (totalDebt / (totalDebt + totalBalance)) * 100 : 0
   const prestigeScore = ['F', 'D', 'C', 'B', 'A', 'S'].indexOf(rank.grade) + (xpPct / 100)
 
+  const cryptoROI = useMemo(() => {
+    return data.crypto.reduce((s, c) => {
+      const currentVal = c.amount * (prices?.crypto?.[c.coinId]?.aud ?? 0)
+      const costBasis = c.amount * c.avgCost
+      return s + (currentVal - costBasis)
+    }, 0)
+  }, [data.crypto, prices])
+
   const liveTracks = useMemo(() => {
     const g = rank.grade
     const completedGoals = (data.goals ?? []).filter(goal => goal.completed).length
     if (g === 'F') return [
-      { pct: saverValue > 0 ? 100 : 0 },
-      { pct: investorValue > 0 ? 100 : 0 },
-      { pct: cryptoValue > 0 ? 100 : 0 },
-      { pct: 100 },
+      { pct: daysActive >= 7 ? 100 : Math.min(100, (daysActive / 7) * 100) },
       { pct: superValue > 0 ? 100 : 0 },
-      { pct: (data.debts ?? []).length > 0 ? 100 : 0 },
+      { pct: Math.min(100, (saverValue / 10000) * 100) },
+      { pct: Math.min(100, (investorValue / 5000) * 100) },
+      { pct: cryptoROI >= 0 ? 100 : 0 },
+      { pct: Math.min(100, (debtPctPaid / 5) * 100) },
     ]
     if (g === 'D') return [
       { pct: Math.min(100, saverValue / 10000 * 100) },
@@ -120,7 +128,18 @@ export function VaultRankPage({ data, updateData, prices }) {
       { pct: Math.min(100, superValue / 280000 * 100) },
       { pct: Math.min(100, debtPctPaid) },
     ]
-  }, [rank.grade, saverValue, investorValue, cryptoValue, savingsRate, superValue, debtPctPaid, totalExpenses, data.goals, data.debts])
+  }, [rank.grade, saverValue, investorValue, cryptoValue, savingsRate, superValue, debtPctPaid, totalExpenses, data.goals, data.debts, daysActive, cryptoROI])
+
+  const bonusAchievements = useMemo(() => {
+    const totalPortfolioChange = data.vault_daily_snapshots?.length > 1
+      ? (data.vault_daily_snapshots[0]?.total_value ?? 0) - (data.vault_daily_snapshots[1]?.total_value ?? 0)
+      : null
+    return {
+      firstGreenDay: totalPortfolioChange != null && totalPortfolioChange > 0,
+      saverMode: saverValue >= 7500,
+      dippedIn: investorValue >= 1000,
+    }
+  }, [data.vault_daily_snapshots, saverValue, investorValue])
 
   return (
     <div className="page">
@@ -142,6 +161,7 @@ export function VaultRankPage({ data, updateData, prices }) {
         debtRatio={debtRatio}
         daysInRank={daysInRank}
         rankHistory={rankHistory}
+        bonusAchievements={bonusAchievements}
       />
 
       <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
