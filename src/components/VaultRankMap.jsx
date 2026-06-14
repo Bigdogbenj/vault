@@ -202,9 +202,14 @@ export function VaultRankMap({
     if (selectedRank === currentRank && tracks?.[i] != null)
       return { ...t, p: Math.min(100, Math.max(0, tracks[i].pct)) }
     if (selState === 'done') return { ...t, p: 100 }
-    return t
+    // For future/next ranks show 0 — no fake placeholder progress
+    return { ...t, p: 0 }
   })
-  const allDone = mergedTracks.every(t => t.p >= 100)
+
+  // allDone only true if current rank AND all tracks genuinely complete
+  const allDone = selState === 'current' && mergedTracks.every(t => t.p >= 100)
+  // Bonus achievements only revealed for done ranks (past ranks you've cleared)
+  const bonusRevealed = selState === 'done' || allDone
 
   function cardLabel() {
     if (selState === 'done') return '✓ Completed'
@@ -441,7 +446,7 @@ export function VaultRankMap({
           Bonus Achievements
         </div>
 
-        {isFuture ? (
+        {!bonusRevealed ? (
           <div style={{
             padding: '10px 12px', borderRadius: 9,
             background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
@@ -457,17 +462,17 @@ export function VaultRankMap({
           }}>
             {selRD.bonus.map((b, i) => (
               <div key={i} style={{
-                background: allDone ? `${selColor}0a` : 'rgba(255,255,255,0.02)',
-                border: allDone ? `1px solid ${selColor}25` : '1px solid rgba(255,255,255,0.06)',
+                background: bonusRevealed ? `${selColor}0a` : 'rgba(255,255,255,0.02)',
+                border: bonusRevealed ? `1px solid ${selColor}25` : '1px solid rgba(255,255,255,0.06)',
                 borderRadius: 9, padding: '9px 8px', textAlign: 'center',
-                opacity: allDone ? 1 : 0.35,
+                opacity: bonusRevealed ? 1 : 0.35,
               }}>
-                <div style={{ fontSize: 24, marginBottom: 4 }}>{allDone ? b.icon : '🔒'}</div>
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{bonusRevealed ? b.icon : '🔒'}</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 2, lineHeight: 1.3 }}>
-                  {allDone ? b.title : '???'}
+                  {bonusRevealed ? b.title : '???'}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
-                  {allDone ? b.desc : 'Complete tracks to reveal'}
+                  {bonusRevealed ? b.desc : 'Complete tracks to reveal'}
                 </div>
               </div>
             ))}
