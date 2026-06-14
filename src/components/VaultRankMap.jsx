@@ -12,17 +12,17 @@ const PRESTIGE_EMBLEMS = { F: '🗑️', D: '🪙', C: '🏠', B: '🏢', A: '�
 const RANK_DATA = {
   F: { name: 'Broke Boy', sub: 'Every legend starts somewhere. Make the first move.',
     tracks: [
-      { n: 'The Saver',    v: 'Bank balance: $0+',          p: 10  },
-      { n: 'The Investor', v: 'No stock/ETF positions',      p: 5   },
-      { n: 'Crypto Degen', v: 'No crypto positions',         p: 5   },
-      { n: 'The Planner',  v: 'Using Vault',                 p: 100 },
-      { n: 'The Builder',  v: 'Any super balance',           p: 20  },
-      { n: 'Debt Slayer',  v: 'Debt entered in app',         p: 30  },
+      { n: 'The Planner',  v: 'Use Vault for 7+ days',          p: 0 },
+      { n: 'The Builder',  v: 'Super balance exists',            p: 0 },
+      { n: 'The Saver',    v: 'Bank balance: $10,000+',          p: 0 },
+      { n: 'The Investor', v: 'First $5,000 in stocks/ETFs',     p: 0 },
+      { n: 'Crypto Degen', v: 'Break even on crypto (ROI ≥ 0)', p: 0 },
+      { n: 'Debt Slayer',  v: 'Pay off 5% of total debt',        p: 0 },
     ],
     bonus: [
-      { icon: '🗑️', title: 'Trash Collector', desc: 'Note every debt you own, no matter how small.' },
-      { icon: '🍜', title: 'Ramen Budget',     desc: 'Set a food budget under $200/mo and stick to it.' },
-      { icon: '💸', title: 'First $50 Saved',  desc: "Put $50 aside and don't touch it for 30 days." },
+      { icon: '📈', title: 'First Green Day', desc: 'Portfolio up on any single day.',           condKey: 'firstGreenDay' },
+      { icon: '💰', title: 'Saver Mode',      desc: 'Bank balance hits $7,500.',                 condKey: 'saverMode'     },
+      { icon: '🎯', title: 'Dipped In',       desc: 'Any stock/ETF position worth $1,000+.',     condKey: 'dippedIn'      },
     ] },
   D: { name: 'Scraping By', sub: 'Foundations forming. Keep the lights on.',
     tracks: [
