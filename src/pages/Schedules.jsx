@@ -10,9 +10,10 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const FREQ_LABELS = { once: 'Once', weekly: 'Weekly', fortnightly: 'Fortnightly', monthly: 'Monthly', quarterly: 'Quarterly' }
 
 const POOL_CONFIG = {
-  crypto: { label: 'Crypto Pool', color: '#a87ef0', icon: '🔮' },
-  stocks: { label: 'Stocks Pool', color: '#4caf7d', icon: '📈' },
-  etfs:   { label: 'ETF Pool',    color: '#5b9ef0', icon: '🏦' },
+  crypto: { label: 'Crypto Pool',  color: '#a87ef0', icon: '🔮' },
+  stocks: { label: 'Stocks Pool',  color: '#4caf7d', icon: '📈' },
+  etfs:   { label: 'ETF Pool',     color: '#5b9ef0', icon: '🏦' },
+  goals:  { label: 'Goals Pool',   color: '#f0a500', icon: '🎯' },
 }
 
 const TYPE_CONFIG = {
@@ -454,6 +455,62 @@ function DeployModal({ poolId, pool, data, prices, onClose, onDeploy }) {
   )
 }
 
+// ─── Goals Deploy Modal ───────────────────────────────────────────────────────
+
+function GoalsDeployModal({ pool, goals, onClose, onDeploy }) {
+  const cfg = POOL_CONFIG.goals
+  const activeGoals = (goals ?? []).filter(g => !g.completed)
+  const [goalId, setGoalId] = useState(activeGoals[0]?.id ?? '')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const amountNum = parseFloat(amount) || 0
+
+  const handleConfirm = () => {
+    if (!goalId || amountNum <= 0) return
+    onDeploy({ poolId: 'goals', goalId, amount: amountNum, deployedAt: new Date(date + 'T12:00:00').toISOString() })
+    onClose()
+  }
+
+  return (
+    <Modal title="Allocate from Goals Pool" onClose={onClose} size="modal-sm">
+      <div style={{ borderTop: `2px solid ${cfg.color}`, marginBottom: 20, paddingTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Available to allocate</span>
+          <span style={{ fontWeight: 700, color: cfg.color }}>{fmt(pool.available)}</span>
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Goal</label>
+        <select className="form-select" value={goalId} onChange={e => setGoalId(e.target.value)}>
+          {activeGoals.length === 0
+            ? <option value="">No active goals</option>
+            : activeGoals.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Amount</label>
+        <input className="form-input" type="number" step="any" min="0"
+          value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Date</label>
+        <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+      </div>
+      <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>Total Allocation</span>
+        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: cfg.color }}>{fmt(amountNum)}</span>
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleConfirm}
+          style={{ background: cfg.color, opacity: amountNum > 0 ? 1 : 0.5 }}>
+          Allocate
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function Schedules({ data, updateData, prices }) {
@@ -490,11 +547,18 @@ export function Schedules({ data, updateData, prices }) {
         deployedTotal: Math.max(0, (pools[entry.poolId]?.deployedTotal || 0) - entry.amount),
       },
     })
+    if (entry.poolId === 'goals' && entry.goalId) {
+      updateData('goals', data.goals.map(g =>
+        g.id === entry.goalId
+          ? { ...g, poolAllocated: Math.max(0, (g.poolAllocated || 0) - entry.amount) }
+          : g
+      ))
+    }
     updateData('poolDeployments', poolDeployments.filter(d => d.id !== id))
   }
 
-  const handleDeploy = ({ poolId, asset, units, pricePerUnit, amount, deployedAt }) => {
-    const newDeployment = { id: genId(), poolId, asset, units, pricePerUnit, amount, deployedAt }
+  const handleDeploy = ({ poolId, goalId, asset, units, pricePerUnit, amount, deployedAt }) => {
+    const newDeployment = { id: genId(), poolId, goalId: goalId ?? null, asset: asset ?? null, units: units ?? null, pricePerUnit: pricePerUnit ?? null, amount, deployedAt }
 
     updateData('pools', {
       ...pools,
@@ -523,13 +587,20 @@ export function Schedules({ data, updateData, prices }) {
         const avgCost = newShares > 0 ? (oldShares * (s.avgCost || 0) + units * pricePerUnit) / newShares : pricePerUnit
         return { ...s, shares: newShares, avgCost }
       }))
-    } else {
+    } else if (poolId === 'etfs') {
       updateData('etfs', data.etfs.map(e => {
         if (e.ticker !== asset) return e
         const oldUnits = e.units || 0
         const newUnits = oldUnits + units
         const avgCost = newUnits > 0 ? (oldUnits * (e.avgCost || 0) + units * pricePerUnit) / newUnits : pricePerUnit
         return { ...e, units: newUnits, avgCost }
+      }))
+    }
+
+    if (poolId === 'goals') {
+      updateData('goals', data.goals.map(g => {
+        if (g.id !== goalId) return g
+        return { ...g, poolAllocated: (g.poolAllocated || 0) + amount }
       }))
     }
 
@@ -804,14 +875,16 @@ export function Schedules({ data, updateData, prices }) {
       {/* ── Investment Pools tab ───────────────────────────────────── */}
       {tab === 'pools' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-            {Object.entries(pools).map(([id, pool]) => (
-              <PoolCard key={id} poolId={id} pool={pool}
-                onDeploy={() => setDeployModal(id)}
-                onEditContrib={() => setEditContrib({ poolId: id, field: 'weeklyContribution', label: `${POOL_CONFIG[id].label} Weekly Contribution` })}
-                onEditAvailable={() => setEditContrib({ poolId: id, field: 'available', label: `${POOL_CONFIG[id].label} Available Balance` })}
-              />
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+            {Object.entries({ ...pools, goals: pools.goals ?? { available: 0, deployedTotal: 0, weeklyContribution: 0 } })
+              .filter(([id]) => POOL_CONFIG[id])
+              .map(([id, pool]) => (
+                <PoolCard key={id} poolId={id} pool={pool}
+                  onDeploy={() => setDeployModal(id)}
+                  onEditContrib={() => setEditContrib({ poolId: id, field: 'weeklyContribution', label: `${POOL_CONFIG[id].label} Weekly Contribution` })}
+                  onEditAvailable={() => setEditContrib({ poolId: id, field: 'available', label: `${POOL_CONFIG[id].label} Available Balance` })}
+                />
+              ))}
           </div>
 
           <div className="card">
@@ -846,7 +919,11 @@ export function Schedules({ data, updateData, prices }) {
                             {POOL_CONFIG[d.poolId]?.label}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 600 }}>{d.asset}</td>
+                        <td style={{ fontWeight: 600 }}>
+                          {d.poolId === 'goals'
+                            ? (data.goals.find(g => g.id === d.goalId)?.name ?? 'Unknown Goal')
+                            : d.asset}
+                        </td>
                         <td style={{ textAlign: 'right', color: 'var(--muted)', fontSize: 13, whiteSpace: 'nowrap' }}>
                           {d.units != null ? fmtNum(d.units, 6) : '—'}
                         </td>
@@ -871,8 +948,11 @@ export function Schedules({ data, updateData, prices }) {
       {modal && (
         <ScheduleModal item={modal.item} accounts={accounts} onClose={() => setModal(null)} onSave={saveSchedule} />
       )}
-      {deployModal && (
+      {deployModal && deployModal !== 'goals' && (
         <DeployModal poolId={deployModal} pool={pools[deployModal]} data={data} prices={prices} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
+      )}
+      {deployModal === 'goals' && (
+        <GoalsDeployModal pool={pools.goals ?? { available: 0 }} goals={data.goals} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
       )}
       {editContrib && (
         <EditValueModal

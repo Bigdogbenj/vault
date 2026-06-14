@@ -203,7 +203,7 @@ export default function App() {
           {page === 'portfolio'  && <Portfolio  {...pageProps} />}
           {page === 'accounts'   && <Accounts   {...pageProps} />}
           {page === 'budget'     && <Budget     {...pageProps} setPage={setPage} />}
-          {page === 'goals'      && <Goals      {...pageProps} />}
+          {page === 'goals'      && <Goals      {...pageProps} accounts={data.accounts} />}
           {page === 'projects'   && <Projects   {...pageProps} />}
           {page === 'debts'      && <Debts      {...pageProps} />}
           {page === 'schedules'  && <Schedules  {...pageProps} />}

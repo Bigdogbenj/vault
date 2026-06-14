@@ -63,13 +63,13 @@ function weeksBetween(fromIso, toIso) {
 
 // ─── Goal Modal ──────────────────────────────────────────────────────────────
 
-function GoalModal({ item, onClose, onSave }) {
+function GoalModal({ item, accounts, onClose, onSave }) {
   const defaultForm = {
     name: '', category: 'Other', target: 0, current: 0, startingAmount: 0,
-    monthly: 0, color: '#4caf7d', targetDate: '',
-    createdAt: new Date().toISOString(), completed: false, completedAt: null,
+    color: '#4caf7d', createdAt: new Date().toISOString(), completed: false, completedAt: null,
+    source: 'manual', linkedAccountId: null,
   }
-  const [form, setForm] = useState(item ? normalizeGoal(item) : defaultForm)
+  const [form, setForm] = useState(item ? { ...defaultForm, ...normalizeGoal(item), source: item.source ?? 'manual', linkedAccountId: item.linkedAccountId ?? null } : defaultForm)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = () => {
@@ -102,32 +102,59 @@ function GoalModal({ item, onClose, onSave }) {
         </div>
       </div>
 
+      <div className="form-group">
+        <label className="form-label">Progress Source</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[
+            { id: 'manual',  label: '✏️ Manual' },
+            { id: 'account', label: '🏦 Account' },
+            { id: 'pool',    label: '🎯 Goal Pool' },
+          ].map(s => (
+            <button key={s.id} onClick={() => set('source', s.id)} style={{
+              padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              border: `1.5px solid ${form.source === s.id ? '#f0a500' : 'var(--border)'}`,
+              background: form.source === s.id ? '#f0a50020' : 'transparent',
+              color: form.source === s.id ? '#f0a500' : 'var(--muted)',
+            }}>{s.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {form.source === 'account' && (
+        <div className="form-group">
+          <label className="form-label">Linked Account</label>
+          <select className="form-select" value={form.linkedAccountId ?? ''} onChange={e => set('linkedAccountId', e.target.value)}>
+            <option value="">Select account...</option>
+            {(accounts ?? []).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      {form.source === 'pool' && (
+        <div style={{ fontSize: 12, color: 'var(--muted)', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 8 }}>
+          Progress will be funded from the Goals Pool in the Schedules tab.
+        </div>
+      )}
+
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Target Amount</label>
           <input className="form-input" type="number" step="1" min="0" value={form.target} onChange={e => set('target', parseFloat(e.target.value) || 0)} />
         </div>
-        <div className="form-group">
-          <label className="form-label">Current Saved</label>
-          <input className="form-input" type="number" step="1" min="0" value={form.current} onChange={e => set('current', parseFloat(e.target.value) || 0)} />
-        </div>
+        {form.source === 'manual' && (
+          <div className="form-group">
+            <label className="form-label">Current Saved</label>
+            <input className="form-input" type="number" step="1" min="0" value={form.current} onChange={e => set('current', parseFloat(e.target.value) || 0)} />
+          </div>
+        )}
       </div>
 
-      <div className="form-row">
+      {form.source === 'manual' && (
         <div className="form-group">
           <label className="form-label">Starting Amount <span style={{ color: 'var(--muted)', fontSize: 10, fontWeight: 400, textTransform: 'none' }}>(when tracking began)</span></label>
           <input className="form-input" type="number" step="1" min="0" value={form.startingAmount} onChange={e => set('startingAmount', parseFloat(e.target.value) || 0)} />
         </div>
-        <div className="form-group">
-          <label className="form-label">Monthly Contribution</label>
-          <input className="form-input" type="number" step="1" min="0" value={form.monthly} onChange={e => set('monthly', parseFloat(e.target.value) || 0)} />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">Target Date <span style={{ color: 'var(--muted)', fontSize: 10, fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-        <input className="form-input" type="date" value={form.targetDate || ''} onChange={e => set('targetDate', e.target.value || null)} />
-      </div>
+      )}
 
       <div className="form-group">
         <label className="form-label">Colour</label>
@@ -230,27 +257,28 @@ function CompletedGoalModal({ goal, onClose }) {
   )
 }
 
+// ─── Resolve current value by source ─────────────────────────────────────────
+
+function resolveGoalCurrent(goal, accounts) {
+  if (goal.source === 'account' && goal.linkedAccountId) {
+    const acc = (accounts ?? []).find(a => a.id === goal.linkedAccountId)
+    return acc?.balance ?? goal.current ?? 0
+  }
+  if (goal.source === 'pool') {
+    return goal.poolAllocated ?? 0
+  }
+  return goal.current ?? 0
+}
+
 // ─── Active Goal Card ─────────────────────────────────────────────────────────
 
-function ActiveGoalCard({ goal, onEdit, onDelete, onComplete, onQuickEdit }) {
+function ActiveGoalCard({ goal, accounts, onEdit, onDelete, onComplete, onQuickEdit }) {
   const g = normalizeGoal(goal)
   const cat = getCat(g.category)
-  const pct = Math.min(100, g.target > 0 ? Math.round((g.current / g.target) * 100) : 0)
-  const remaining = Math.max(0, g.target - g.current)
-  const isReady = g.current >= g.target
-
-  const monthly = g.monthly || 0
-  const weekly = monthly > 0 ? monthly / 4.33 : null
-  const fortnightly = monthly > 0 ? monthly / 2.17 : null
-
-  let estDateStr = null
-  if (g.targetDate) {
-    const td = new Date(g.targetDate)
-    if (td > new Date()) estDateStr = td.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' })
-  }
-  if (!estDateStr && monthly > 0 && remaining > 0) {
-    estDateStr = fmtMonthYear(Date.now() + (remaining / monthly) * 30.44 * 24 * 3600 * 1000)
-  }
+  const current = resolveGoalCurrent(g, accounts)
+  const pct = Math.min(100, g.target > 0 ? Math.round((current / g.target) * 100) : 0)
+  const remaining = Math.max(0, g.target - current)
+  const isReady = current >= g.target
 
   const weeksActive = g.createdAt
     ? Math.max(1, Math.floor((Date.now() - new Date(g.createdAt).getTime()) / (7 * 24 * 3600 * 1000)))
@@ -285,10 +313,10 @@ function ActiveGoalCard({ goal, onEdit, onDelete, onComplete, onQuickEdit }) {
       {/* Amounts */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
         <span
-          title="Click to update balance"
-          onClick={onQuickEdit}
-          style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 22, fontWeight: 700, cursor: 'pointer', borderBottom: '1px dashed var(--border)' }}
-        >{fmt(g.current)}</span>
+          title={g.source === 'manual' ? 'Click to update balance' : undefined}
+          onClick={g.source === 'manual' ? onQuickEdit : undefined}
+          style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 22, fontWeight: 700, cursor: g.source === 'manual' ? 'pointer' : 'default', borderBottom: g.source === 'manual' ? '1px dashed var(--border)' : 'none' }}
+        >{fmt(current)}</span>
         <span style={{ fontSize: 13, color: 'var(--muted)' }}>
           of <span style={{ fontWeight: 700, color: 'var(--text)' }}>{fmt(g.target)}</span>
         </span>
@@ -306,37 +334,15 @@ function ActiveGoalCard({ goal, onEdit, onDelete, onComplete, onQuickEdit }) {
       </div>
 
       {/* Stats footer */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          {estDateStr && (
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Est. Complete</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: g.color }}>{estDateStr}</div>
-            </div>
-          )}
-          {weekly != null && (
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Weekly</div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{fmt(weekly)}</div>
-            </div>
-          )}
-          {fortnightly != null && (
-            <div>
-              <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 }}>Fortnightly</div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{fmt(fortnightly)}</div>
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+          {g.source === 'account' ? '🏦 Account linked' : g.source === 'pool' ? '🎯 Pool funded' : '✏️ Manual'}
+        </span>
+        {weeksActive != null && (
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-            Monthly: <span style={{ color: 'var(--text)', fontWeight: 600 }}>{fmt(monthly)}</span>
+            🔥 {weeksActive} week{weeksActive !== 1 ? 's' : ''} active
           </span>
-          {weeksActive != null && (
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-              🔥 {weeksActive} week{weeksActive !== 1 ? 's' : ''} active
-            </span>
-          )}
-        </div>
+        )}
       </div>
     </div>
   )
@@ -404,7 +410,7 @@ function CompletedGoalCard({ goal, onClick }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function Goals({ data, updateData }) {
+export function Goals({ data, updateData, prices, accounts }) {
   const [modal, setModal] = useState(null)
   const [completedModal, setCompletedModal] = useState(null)
   const [quickEdit, setQuickEdit] = useState(null)
@@ -413,7 +419,7 @@ export function Goals({ data, updateData }) {
   const activeGoals = allGoals.filter(g => !g.completed)
   const completedGoals = allGoals.filter(g => g.completed)
 
-  const totalActiveSaved = activeGoals.reduce((s, g) => s + (g.current || 0), 0)
+  const totalActiveSaved = activeGoals.reduce((s, g) => s + resolveGoalCurrent(g, accounts), 0)
   const totalCompletedSaved = completedGoals.reduce((s, g) => s + (g.current || 0), 0)
 
   const saveGoal = (form) => {
@@ -475,6 +481,7 @@ export function Goals({ data, updateData }) {
               <ActiveGoalCard
                 key={g.id}
                 goal={g}
+                accounts={accounts}
                 onEdit={() => setModal({ item: g })}
                 onDelete={() => deleteGoal(g.id)}
                 onComplete={() => completeGoal(g)}
@@ -519,6 +526,7 @@ export function Goals({ data, updateData }) {
       {modal && (
         <GoalModal
           item={modal.item}
+          accounts={accounts}
           onClose={() => setModal(null)}
           onSave={saveGoal}
         />
