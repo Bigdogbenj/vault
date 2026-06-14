@@ -385,8 +385,8 @@ function TrackDetailModal({ track, level, value, data, prices, savingsRate, comp
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--muted)', marginBottom: 12 }}>Level Roadmap</div>
           {levels.map((lv, idx) => {
-            const isAchieved = level >= 0 && idx < level
-            const isCurrent = level === idx || (level === -1 && idx === 0 && track.id !== 'debt')
+            const isAchieved = level >= 0 && idx <= level
+            const isCurrent = level >= 0 && idx === level + 1 || (level === -1 && idx === 0 && track.id !== 'debt')
             const isFuture = !isAchieved && !isCurrent
             const barPct = getRowBarPct(track, idx, level, value)
             const req = getLevelRequirement(track, idx)
@@ -490,8 +490,8 @@ function TrackCard({ track, value, level, onClick }) {
   } else {
     const numVal = typeof value === 'number' ? value : 0
     const prevThresh = level >= 0 ? levels[level].threshold : 0
-    const nextThresh = nextLevel ? nextLevel.threshold : levels[levels.length - 1].threshold
-    barPct = level < 0 ? 0 : isMaxed ? 100 : Math.min(100, ((numVal - prevThresh) / (nextThresh - prevThresh)) * 100)
+    const nextThresh = level + 1 < levels.length ? levels[level + 1].threshold : levels[levels.length - 1].threshold
+    barPct = level < 0 ? Math.min(100, (numVal / levels[0].threshold) * 100) : isMaxed ? 100 : Math.min(100, ((numVal - prevThresh) / (nextThresh - prevThresh)) * 100)
     if (nextLevel && !isMaxed) toNext = fmt(Math.max(0, nextThresh - numVal)) + ' to go'
   }
 
