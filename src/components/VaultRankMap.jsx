@@ -148,7 +148,7 @@ export function VaultRankMap({
   netWorth, invested, debt, savingsRate, daysActive,
   liquidityMonths, attackPerMonth, defencePct, yieldPct,
   powerTotal, prestigeScore, debtRatio,
-  daysInRank, rankHistory,
+  daysInRank, rankHistory, bonusAchievements,
 }) {
   const [selectedRank, setSelectedRank] = useState(currentRank)
   const scrollRef = useRef(null)
@@ -446,7 +446,7 @@ export function VaultRankMap({
           Bonus Achievements
         </div>
 
-        {!bonusRevealed ? (
+        {selectedRank !== currentRank && selState !== 'done' ? (
           <div style={{
             padding: '10px 12px', borderRadius: 9,
             background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)',
@@ -460,22 +460,27 @@ export function VaultRankMap({
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7,
             marginBottom: selectedRank === currentRank && nextRankGrade ? 12 : 0,
           }}>
-            {selRD.bonus.map((b, i) => (
-              <div key={i} style={{
-                background: bonusRevealed ? `${selColor}0a` : 'rgba(255,255,255,0.02)',
-                border: bonusRevealed ? `1px solid ${selColor}25` : '1px solid rgba(255,255,255,0.06)',
-                borderRadius: 9, padding: '9px 8px', textAlign: 'center',
-                opacity: bonusRevealed ? 1 : 0.35,
-              }}>
-                <div style={{ fontSize: 24, marginBottom: 4 }}>{bonusRevealed ? b.icon : '🔒'}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 2, lineHeight: 1.3 }}>
-                  {bonusRevealed ? b.title : '???'}
+            {selRD.bonus.map((b, i) => {
+              const isUnlocked = selectedRank === currentRank && b.condKey
+                ? (bonusAchievements?.[b.condKey] ?? false)
+                : selState === 'done'
+              return (
+                <div key={i} style={{
+                  background: isUnlocked ? `${selColor}0a` : 'rgba(255,255,255,0.02)',
+                  border: isUnlocked ? `1px solid ${selColor}25` : '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 9, padding: '9px 8px', textAlign: 'center',
+                  opacity: isUnlocked ? 1 : 0.35,
+                }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>{isUnlocked ? b.icon : '🔒'}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 2, lineHeight: 1.3 }}>
+                    {isUnlocked ? b.title : '???'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
+                    {isUnlocked ? b.desc : 'Complete tracks to reveal'}
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
-                  {bonusRevealed ? b.desc : 'Complete tracks to reveal'}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
