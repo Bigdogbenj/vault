@@ -106,20 +106,20 @@ const RANK_REQ_SHORT = {
 }
 
 const NODES = {
-  F: { x: 60,  y: 930 },
-  D: { x: 140, y: 760 },
-  C: { x: 60,  y: 590 },
-  B: { x: 140, y: 420 },
-  A: { x: 60,  y: 250 },
-  S: { x: 140, y: 80  },
+  F: { x: 120, y: 930 },
+  D: { x: 280, y: 760 },
+  C: { x: 120, y: 590 },
+  B: { x: 280, y: 420 },
+  A: { x: 120, y: 250 },
+  S: { x: 280, y: 80  },
 }
 
 const SEGMENTS = [
-  { from: 'F', to: 'D', cx: 100, cy: 845, color: RANK_COLORS.D },
-  { from: 'D', to: 'C', cx: 100, cy: 675, color: RANK_COLORS.C },
-  { from: 'C', to: 'B', cx: 100, cy: 505, color: RANK_COLORS.B },
-  { from: 'B', to: 'A', cx: 100, cy: 335, color: RANK_COLORS.A },
-  { from: 'A', to: 'S', cx: 100, cy: 165, color: RANK_COLORS.S },
+  { from: 'F', to: 'D', cx: 200, cy: 845, color: RANK_COLORS.D },
+  { from: 'D', to: 'C', cx: 200, cy: 675, color: RANK_COLORS.C },
+  { from: 'C', to: 'B', cx: 200, cy: 505, color: RANK_COLORS.B },
+  { from: 'B', to: 'A', cx: 200, cy: 335, color: RANK_COLORS.A },
+  { from: 'A', to: 'S', cx: 200, cy: 165, color: RANK_COLORS.S },
 ]
 
 const fmt = (n) => {
@@ -129,7 +129,7 @@ const fmt = (n) => {
   return n < 0 ? `-${str}` : str
 }
 
-function Tile({ label, value, sub, color, labelSz = 8, valueSz = 14 }) {
+function Tile({ label, value, sub, color, labelSz = 11, valueSz = 20 }) {
   return (
     <div style={{
       background: `${color}0f`,
@@ -243,8 +243,8 @@ export function VaultRankMap({
             </text>
           </svg>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 16, fontWeight: 800, color: rankColor, lineHeight: 1.1 }}>{rd.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3, marginBottom: 10, lineHeight: 1.4 }}>{rd.sub}</div>
+            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 22, fontWeight: 800, color: rankColor, lineHeight: 1.1 }}>{rd.name}</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3, marginBottom: 10, lineHeight: 1.4 }}>{rd.sub}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: 'var(--muted)' }}>
                 {nextRankGrade ? `Progress to Rank ${nextRankGrade}` : 'Maximum rank achieved'}
@@ -298,7 +298,7 @@ export function VaultRankMap({
       <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
 
         {/* LEFT COLUMN */}
-        <div style={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24' }}>Core</div>
           <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                 sub="net worth"       />
           <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`} sub="income retained" />
@@ -308,11 +308,11 @@ export function VaultRankMap({
         </div>
 
         {/* CENTRE MAP */}
-        <div style={{ width: 200, flexShrink: 0, position: 'relative', height: 420 }}>
+        <div style={{ flex: 1, position: 'relative', height: 420 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div ref={scrollRef} style={{ height: '100%', width: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <svg width="200" height="1100" viewBox="0 0 200 1100" xmlns="http://www.w3.org/2000/svg">
+            <svg width="100%" height="1100" viewBox="0 0 400 1100" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="vrm-glow" x="-80%" y="-80%" width="260%" height="260%">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -345,24 +345,24 @@ export function VaultRankMap({
                 return (
                   <g key={grade} onClick={() => setSelectedRank(grade)} style={{ cursor: 'pointer' }}>
                     {state === 'current' && (<>
-                      <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
-                        <animate attributeName="r" values="14;22;22" dur="2.5s" repeatCount="indefinite" />
+                      <circle cx={x} cy={y} r="22" fill="none" stroke={color} strokeWidth="1.5" opacity="0">
+                        <animate attributeName="r" values="22;34;34" dur="2.5s" repeatCount="indefinite" />
                         <animate attributeName="opacity" values="0.45;0;0" dur="2.5s" repeatCount="indefinite" />
                       </circle>
-                      <circle cx={x} cy={y} r="14" fill="none" stroke={color} strokeWidth="1" opacity="0">
-                        <animate attributeName="r" values="14;26;26" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
+                      <circle cx={x} cy={y} r="22" fill="none" stroke={color} strokeWidth="1" opacity="0">
+                        <animate attributeName="r" values="22;40;40" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
                         <animate attributeName="opacity" values="0.3;0;0" dur="2.5s" repeatCount="indefinite" begin="0.6s" />
                       </circle>
                     </>)}
-                    {state === 'next' && <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />}
-                    {isSelected && state !== 'current' && <circle cx={x} cy={y} r="17" fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />}
-                    {state === 'done' && <circle cx={x} cy={y} r="14" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />}
-                    {state === 'current' && <circle cx={x} cy={y} r="14" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)"><animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" /></circle>}
-                    {state === 'next' && <circle cx={x} cy={y} r="14" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />}
-                    {state === 'locked' && <circle cx={x} cy={y} r="14" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />}
-                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="12" fill={color} opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>{grade}</text>
-                    <text x={x} y={y - 20} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="10" fill={color} opacity={nameOp}>{RANK_DATA[grade].name}</text>
-                    <text x={x} y={y + 20} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="8" fill="rgba(255,255,255,0.45)" opacity={nameOp}>{RANK_REQ_SHORT[grade]}</text>
+                    {state === 'next' && <circle cx={x} cy={y} r="26" fill="none" stroke={color} strokeWidth="1" opacity="0.2" />}
+                    {isSelected && state !== 'current' && <circle cx={x} cy={y} r="26" fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="4 3" opacity="0.5" />}
+                    {state === 'done' && <circle cx={x} cy={y} r="22" fill={`${color}18`} stroke={`${color}60`} strokeWidth="1.5" />}
+                    {state === 'current' && <circle cx={x} cy={y} r="22" fill="#1a1a1a" stroke={color} strokeWidth="2.5" filter="url(#vrm-glow)"><animate attributeName="stroke-opacity" values="0.5;1;0.5" dur="2.5s" repeatCount="indefinite" /></circle>}
+                    {state === 'next' && <circle cx={x} cy={y} r="22" fill={`${color}12`} stroke={color} strokeWidth="1.5" opacity="0.6" />}
+                    {state === 'locked' && <circle cx={x} cy={y} r="22" fill="#0a0a0a" stroke={`${color}20`} strokeWidth="1" />}
+                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="900" fontSize="18" fill={color} opacity={state === 'current' ? 1 : state === 'next' ? 0.55 : state === 'done' ? 0.5 : 0.18}>{grade}</text>
+                    <text x={x} y={y - 30} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="600" fontSize="14" fill={color} opacity={nameOp}>{RANK_DATA[grade].name}</text>
+                    <text x={x} y={y + 30} textAnchor="middle" fontFamily="Space Grotesk, sans-serif" fontWeight="400" fontSize="11" fill="rgba(255,255,255,0.45)" opacity={nameOp}>{RANK_REQ_SHORT[grade]}</text>
                   </g>
                 )
               })}
@@ -371,7 +371,7 @@ export function VaultRankMap({
         </div>
 
         {/* RIGHT COLUMN */}
-        <div style={{ width: 140, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80' }}>Offense</div>
           <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
           <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}             sub="total portfolio" />
