@@ -38,17 +38,18 @@ export function VaultRankPage({ data, updateData, prices }) {
   }, [snapshots])
 
   const daysInRank = useMemo(() => {
-    const achieved = data.rankAchievedAt
-    if (!achieved) return 0
+    const achieved = data.rankAchievedAt ?? '2026-06-06T00:00:00Z'
     return Math.floor((Date.now() - new Date(achieved).getTime()) / 86400000)
   }, [data.rankAchievedAt])
 
   const rankHistory = data.rankHistory ?? []
 
   useEffect(() => {
-    const prevGrade = data.currentRankGrade
-    if (!prevGrade || prevGrade === rank.grade) return
-    const daysSpent = Math.floor((Date.now() - new Date(data.rankAchievedAt).getTime()) / 86400000)
+    if (!rank?.grade) return
+    const prevGrade = data.currentRankGrade ?? 'F'
+    if (prevGrade === rank.grade) return
+    const achievedAt = data.rankAchievedAt ?? '2026-06-06T00:00:00Z'
+    const daysSpent = Math.floor((Date.now() - new Date(achievedAt).getTime()) / 86400000)
     const newHistory = [...(data.rankHistory ?? []), {
       grade: prevGrade,
       promotedTo: rank.grade,
