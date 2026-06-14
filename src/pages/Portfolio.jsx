@@ -454,15 +454,23 @@ export function Portfolio({ data, updateData, prices }) {
     const cutoffs = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 365 }
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - (cutoffs[histRange] ?? 30))
-    return snapshots
-      .filter(s => new Date(s.date) >= cutoff)
+    const today = new Date().toISOString().slice(0, 10)
+    const historical = snapshots
+      .filter(s => new Date(s.date) >= cutoff && s.date !== today)
       .map(s => ({
         label: new Date(s.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
         crypto: s.crypto_value,
         stocks: s.stocks_value,
         etfs: s.etf_value,
       }))
-  }, [snapshots, histRange])
+    const todayPt = {
+      label: 'Today',
+      crypto: cryptoTotal,
+      stocks: stockTotal,
+      etfs: etfTotal,
+    }
+    return [...historical, todayPt]
+  }, [snapshots, histRange, cryptoTotal, stockTotal, etfTotal])
 
   // Growth Projection: history + forward compound projection
   const { projChartData, projMilestones, projFinalValues, projStageMarkers } = useMemo(() => {
