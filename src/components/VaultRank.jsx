@@ -216,23 +216,20 @@ function computeTrackLevel(track, value, data, savingsRate, completedGoals, netW
 }
 
 function getRowBarPct(track, idx, level, value) {
-  if (idx < level) return 100
-  if (idx > level && !(level === -1 && idx === 0)) return 0
-  // current level (or approaching first level)
-  if (track.id === 'planner') return 100
+  if (idx <= level) return 100
+  if (idx !== level + 1) return 0
+  // idx is the current in-progress level
+  if (track.id === 'planner') return 0
   if (track.id === 'debt') {
     const pctPaid = value?.pctPaid ?? 0
-    if (level === 0) return Math.min(100, (pctPaid / 10) * 100)
-    const cur = track.levels[level].threshold
-    const next = level < 5 ? track.levels[level + 1].threshold : 100
+    const cur = level >= 0 ? track.levels[level].threshold : 0
+    const next = track.levels[idx].threshold
+    if (next <= cur) return 100
     return Math.min(100, Math.max(0, ((pctPaid - cur) / (next - cur)) * 100))
   }
   const numVal = typeof value === 'number' ? value : 0
-  if (level === -1) {
-    return Math.min(100, (numVal / track.levels[0].threshold) * 100)
-  }
-  const cur = track.levels[level].threshold
-  const next = level < 5 ? track.levels[level + 1].threshold : cur
+  const cur = level >= 0 ? track.levels[level].threshold : 0
+  const next = track.levels[idx].threshold
   if (next <= cur) return 100
   return Math.min(100, Math.max(0, ((numVal - cur) / (next - cur)) * 100))
 }
@@ -490,8 +487,8 @@ function TrackCard({ track, value, level, onClick }) {
   } else {
     const numVal = typeof value === 'number' ? value : 0
     const prevThresh = level >= 0 ? levels[level].threshold : 0
-    const nextThresh = level + 1 < levels.length ? levels[level + 1].threshold : levels[levels.length - 1].threshold
-    barPct = level < 0 ? Math.min(100, (numVal / levels[0].threshold) * 100) : isMaxed ? 100 : Math.min(100, ((numVal - prevThresh) / (nextThresh - prevThresh)) * 100)
+    const nextThresh = nextLevel ? nextLevel.threshold : levels[levels.length - 1].threshold
+    barPct = isMaxed ? 100 : Math.min(100, Math.max(0, ((numVal - prevThresh) / (nextThresh - prevThresh)) * 100))
     if (nextLevel && !isMaxed) toNext = fmt(Math.max(0, nextThresh - numVal)) + ' to go'
   }
 
