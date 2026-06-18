@@ -130,6 +130,7 @@ export const DEFAULTS = {
     crypto: { weeklyContribution: 100, available: 0, deployedTotal: 0, lastDeployedAt: null, lastDeployedAmount: null },
     stocks: { weeklyContribution: 50,  available: 0, deployedTotal: 0, lastDeployedAt: null, lastDeployedAmount: null },
     etfs:   { weeklyContribution: 60,  available: 0, deployedTotal: 0, lastDeployedAt: null, lastDeployedAmount: null },
+    goals:  { weeklyContribution: 0,   available: 0, deployedTotal: 0, lastDeployedAt: null, lastDeployedAmount: null },
   },
   transferLog: [],
   poolDeployments: [],
