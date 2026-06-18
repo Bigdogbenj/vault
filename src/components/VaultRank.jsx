@@ -95,12 +95,12 @@ const TRACKS = [
 ]
 
 export const OVERALL_RANKS = [
-  { grade: 'F', title: 'Broke Boy',      minAvg: 0, minNW: -Infinity },
-  { grade: 'D', title: 'Scraping By',    minAvg: 2, minNW: 10000  },
-  { grade: 'C', title: 'Getting There',  minAvg: 3, minNW: 50000  },
-  { grade: 'B', title: 'Wealth Aware',   minAvg: 4, minNW: 150000 },
-  { grade: 'A', title: 'Wealth Builder', minAvg: 5, minNW: 300000 },
-  { grade: 'S', title: 'The Vault',      minAvg: 5, minNW: 600000, requireAllFive: true },
+  { grade: 'F', title: 'Broke Boy',      minTNW: -Infinity, minSuper: 0      },
+  { grade: 'D', title: 'Scraping By',    minTNW: 25000,     minSuper: 0      },
+  { grade: 'C', title: 'Getting There',  minTNW: 100000,    minSuper: 0      },
+  { grade: 'B', title: 'Wealth Aware',   minTNW: 250000,    minSuper: 75000  },
+  { grade: 'A', title: 'Wealth Builder', minTNW: 500000,    minSuper: 150000 },
+  { grade: 'S', title: 'The Vault',      minTNW: 1000000,   minSuper: 300000, requireAllFive: true },
 ]
 
 export const RANK_MESSAGES = {
@@ -621,10 +621,10 @@ export function useVaultRankInfo(data, prices, netWorth) {
   for (let i = OVERALL_RANKS.length - 1; i >= 0; i--) {
     const r = OVERALL_RANKS[i]
     if (r.requireAllFive) {
-      if (allFiveOrAbove && netWorth >= r.minNW) { rankIdx = i; break }
+      if (allFiveOrAbove && netWorth >= r.minTNW && superValue >= r.minSuper) { rankIdx = i; break }
       continue
     }
-    if (avgLevel >= r.minAvg && netWorth >= r.minNW) { rankIdx = i; break }
+    if (netWorth >= r.minTNW && superValue >= r.minSuper) { rankIdx = i; break }
   }
 
   const rank = OVERALL_RANKS[rankIdx]
@@ -633,13 +633,13 @@ export function useVaultRankInfo(data, prices, netWorth) {
 
   let progressToNext = null
   if (nextRank) {
-    const nwNeeded = nextRank.minNW > netWorth ? fmt(nextRank.minNW - netWorth) + ' net worth' : null
-    const lvlNeeded = nextRank.minAvg > avgLevel ? `avg level ${nextRank.minAvg.toFixed(0)}` : null
-    progressToNext = [nwNeeded, lvlNeeded].filter(Boolean).join(' + ') || 'Almost there'
+    const tnwNeeded = nextRank.minTNW > netWorth ? fmt(nextRank.minTNW - netWorth) + ' True NW' : null
+    const superNeeded = nextRank.minSuper > superValue ? fmt(nextRank.minSuper - superValue) + ' super' : null
+    progressToNext = [tnwNeeded, superNeeded].filter(Boolean).join(' + ') || 'Almost there'
   }
 
   const xpPct = nextRank
-    ? Math.min(100, Math.max(0, ((avgLevel - rank.minAvg) / Math.max(nextRank.minAvg - rank.minAvg, 0.1)) * 100))
+    ? Math.min(100, Math.max(0, ((netWorth - rank.minTNW) / Math.max(nextRank.minTNW - rank.minTNW, 1)) * 100))
     : 100
 
   return {
