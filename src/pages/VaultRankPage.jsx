@@ -164,7 +164,7 @@ export function VaultRankPage({ data, updateData, prices }) {
         bonusAchievements={bonusAchievements}
       />
 
-      <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} />
+      <RankRoadmap rank={rank} nextRank={nextRank} avgLevel={avgLevel} trueNetWorth={trueNetWorth} superValue={superValue} />
       <VaultRank data={data} prices={prices} netWorth={trueNetWorth} />
 
       <AchievementsWall
@@ -180,14 +180,14 @@ export function VaultRankPage({ data, updateData, prices }) {
 
 const RANK_REQ = {
   F: 'Starting rank',
-  D: '$10k NW · $10k banked',
-  C: '$50k NW · $50k invested',
-  B: '$150k NW · $100k invested · $75k super',
-  A: '$300k NW · debt <30% assets',
-  S: '$600k NW · 3× L6 tracks · $500k super',
+  D: '$25k True NW',
+  C: '$100k True NW',
+  B: '$250k True NW · $75k super',
+  A: '$500k True NW · $150k super',
+  S: '$1M True NW · $300k super · all tracks L5+',
 }
 
-function RankRoadmap({ rank, nextRank, avgLevel, trueNetWorth }) {
+function RankRoadmap({ rank, nextRank, avgLevel, trueNetWorth, superValue }) {
   const currentIdx = OVERALL_RANKS.findIndex(r => r.grade === rank.grade)
 
   return (
@@ -247,9 +247,10 @@ function RankRoadmap({ rank, nextRank, avgLevel, trueNetWorth }) {
       {nextRank && (() => {
         const nc = GRADE_COLORS[nextRank.grade]
         const reqs = []
-        if (nextRank.minAvg > avgLevel) reqs.push(`Avg level ${nextRank.minAvg} (currently ${avgLevel.toFixed(1)})`)
-        if (nextRank.minNW > trueNetWorth && nextRank.minNW > 0 && nextRank.minNW !== -Infinity)
-          reqs.push(`${fmt(nextRank.minNW)} net worth (currently ${fmt(trueNetWorth)})`)
+        if (nextRank.minTNW > trueNetWorth && nextRank.minTNW > 0 && nextRank.minTNW !== -Infinity)
+          reqs.push(`${fmt(nextRank.minTNW)} True NW (currently ${fmt(trueNetWorth)})`)
+        if (nextRank.minSuper > superValue)
+          reqs.push(`${fmt(nextRank.minSuper)} super (currently ${fmt(superValue)})`)
         if (nextRank.requireAllFive) reqs.push('All tracks at level 5+')
         return (
           <div style={{ marginTop: 20, padding: '14px 16px', borderRadius: 8, border: `1px solid ${nc}30`, background: `${nc}08` }}>
