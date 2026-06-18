@@ -639,21 +639,21 @@ export function Schedules({ data, updateData, prices }) {
   // ── Accumulated chart data ────────────────────────────────────────────────
   const chartData = useMemo(() => {
     if (transferLog.length < 2) return []
-    const byMonth = {}
+    const byDay = {}
     for (const entry of transferLog) {
       const d = new Date(entry.firedAt)
-      const key = `${d.toLocaleString('en-AU', { month: 'short' })} ${d.getFullYear()}`
-      byMonth[key] = byMonth[key] ?? { transfers: 0, expenses: 0, ts: d.getTime() }
-      if (entry.type === 'transfer') byMonth[key].transfers += entry.amount
-      if (entry.type === 'expense') byMonth[key].expenses += entry.amount
+      const key = d.toISOString().slice(0, 10) // YYYY-MM-DD
+      byDay[key] = byDay[key] ?? { transfers: 0, expenses: 0, ts: d.getTime(), label: d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) }
+      if (entry.type === 'transfer') byDay[key].transfers += entry.amount
+      if (entry.type === 'expense') byDay[key].expenses += entry.amount
     }
     let cumT = 0, cumE = 0
-    return Object.entries(byMonth)
+    return Object.entries(byDay)
       .sort(([, a], [, b]) => a.ts - b.ts)
-      .map(([month, { transfers, expenses }]) => {
+      .map(([, { transfers, expenses, label }]) => {
         cumT += transfers
         cumE += expenses
-        return { month, transfers: Math.round(cumT), expenses: Math.round(cumE) }
+        return { month: label, transfers: Math.round(cumT), expenses: Math.round(cumE) }
       })
   }, [transferLog])
 
