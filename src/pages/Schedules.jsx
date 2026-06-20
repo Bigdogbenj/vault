@@ -511,12 +511,62 @@ function GoalsDeployModal({ pool, goals, onClose, onDeploy }) {
   )
 }
 
+// ─── Quick Transfer Modal ─────────────────────────────────────────────────────
+
+function QuickTransferModal({ accounts, pools, onClose, onTransfer }) {
+  const [fromAccount, setFromAccount] = useState(accounts[0]?.id ?? '')
+  const [toPool, setToPool] = useState('etfs')
+  const [amount, setAmount] = useState('')
+  const amountNum = parseFloat(amount) || 0
+  const cfg = POOL_CONFIG[toPool]
+
+  const handleConfirm = () => {
+    if (!fromAccount || amountNum <= 0) return
+    onTransfer({ fromAccount, toPool, amount: amountNum })
+    onClose()
+  }
+
+  return (
+    <Modal title="Quick Transfer to Pool" onClose={onClose} size="modal-sm">
+      <div className="form-group">
+        <label className="form-label">From Account</label>
+        <select className="form-select" value={fromAccount} onChange={e => setFromAccount(e.target.value)}>
+          {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({fmt(a.balance)})</option>)}
+        </select>
+      </div>
+      <div className="form-group">
+        <label className="form-label">To Pool</label>
+        <select className="form-select" value={toPool} onChange={e => setToPool(e.target.value)}>
+          {Object.entries(POOL_CONFIG).map(([id, c]) => <option key={id} value={id}>{c.label}</option>)}
+        </select>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Amount</label>
+        <input className="form-input" type="number" step="any" min="0"
+          value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>Sending to {cfg?.label}</span>
+        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: cfg?.color }}>{fmt(amountNum)}</span>
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleConfirm}
+          style={{ background: cfg?.color, opacity: amountNum > 0 ? 1 : 0.5 }}>
+          Transfer
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function Schedules({ data, updateData, prices }) {
   const [tab, setTab] = useState('schedules')
   const [modal, setModal] = useState(null)
   const [deployModal, setDeployModal] = useState(null)
+  const [quickTransferOpen, setQuickTransferOpen] = useState(false)
   const [editContrib, setEditContrib] = useState(null)
 
   const schedules = data.schedules ?? []
@@ -605,6 +655,30 @@ export function Schedules({ data, updateData, prices }) {
     }
 
     updateData('poolDeployments', [newDeployment, ...poolDeployments])
+  }
+
+  const handleQuickTransfer = ({ fromAccount, toPool, amount }) => {
+    const accIdx = accounts.findIndex(a => a.id === fromAccount)
+    if (accIdx < 0) return
+    const updatedAccounts = accounts.map(a =>
+      a.id === fromAccount ? { ...a, balance: (a.balance || 0) - amount } : a
+    )
+    updateData('accounts', updatedAccounts)
+    updateData('pools', {
+      ...pools,
+      [toPool]: { ...pools[toPool], available: (pools[toPool]?.available || 0) + amount },
+    })
+    const fromName = accounts.find(a => a.id === fromAccount)?.name ?? 'Unknown'
+    updateData('transferLog', [{
+      id: genId(),
+      scheduleId: null,
+      scheduleName: 'Quick Transfer',
+      type: 'transfer',
+      amount,
+      fromLabel: fromName,
+      toLabel: `${POOL_CONFIG[toPool]?.label}`,
+      firedAt: new Date().toISOString(),
+    }, ...transferLog])
   }
 
   // ── Transfer Summary stats ────────────────────────────────────────────────
@@ -875,6 +949,11 @@ export function Schedules({ data, updateData, prices }) {
       {/* ── Investment Pools tab ───────────────────────────────────── */}
       {tab === 'pools' && (
         <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button className="btn btn-primary" onClick={() => setQuickTransferOpen(true)}>
+              ⚡ Quick Transfer
+            </button>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
             {Object.entries({ ...pools, goals: pools.goals ?? { available: 0, deployedTotal: 0, weeklyContribution: 0 } })
               .filter(([id]) => POOL_CONFIG[id])
@@ -953,6 +1032,9 @@ export function Schedules({ data, updateData, prices }) {
       )}
       {deployModal === 'goals' && (
         <GoalsDeployModal pool={pools.goals ?? { available: 0 }} goals={data.goals} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
+      )}
+      {quickTransferOpen && (
+        <QuickTransferModal accounts={accounts} pools={pools} onClose={() => setQuickTransferOpen(false)} onTransfer={handleQuickTransfer} />
       )}
       {editContrib && (
         <EditValueModal
