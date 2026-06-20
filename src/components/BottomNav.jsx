@@ -44,6 +44,10 @@ const MORE_NAV = [
     id: 'vaultrank', label: 'Vault Rank',
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 21h8M12 21V9M5 3l2 6h10l2-6"/><path d="M5 3H3M19 3h2"/></svg>,
   },
+  {
+    id: 'trades', label: 'Trades',
+    icon: <span style={{ fontSize: 16 }}>💰</span>,
+  },
 ]
 
 const MORE_IDS = new Set(MORE_NAV.map(i => i.id))
