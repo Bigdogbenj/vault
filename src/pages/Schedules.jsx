@@ -14,6 +14,7 @@ const POOL_CONFIG = {
   stocks: { label: 'Stocks Pool',  color: '#4caf7d', icon: '📈' },
   etfs:   { label: 'ETF Pool',     color: '#5b9ef0', icon: '🏦' },
   goals:  { label: 'Goals Pool',   color: '#f0a500', icon: '🎯' },
+  debts:  { label: 'Debt Pool',    color: '#e05b5b', icon: '⚔️' },
 }
 
 const TYPE_CONFIG = {
@@ -511,6 +512,62 @@ function GoalsDeployModal({ pool, goals, onClose, onDeploy }) {
   )
 }
 
+// ─── Debt Deploy Modal ────────────────────────────────────────────────────────
+
+function DebtDeployModal({ pool, debts, onClose, onDeploy }) {
+  const cfg = POOL_CONFIG.debts
+  const activeDebts = (debts ?? []).filter(d => d.remaining > 0)
+  const [debtId, setDebtId] = useState(activeDebts[0]?.id ?? '')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const amountNum = parseFloat(amount) || 0
+
+  const handleConfirm = () => {
+    if (!debtId || amountNum <= 0) return
+    onDeploy({ poolId: 'debts', debtId, amount: amountNum, deployedAt: new Date(date + 'T12:00:00').toISOString() })
+    onClose()
+  }
+
+  return (
+    <Modal title="Allocate from Debt Pool" onClose={onClose} size="modal-sm">
+      <div style={{ borderTop: `2px solid ${cfg.color}`, marginBottom: 20, paddingTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Available to allocate</span>
+          <span style={{ fontWeight: 700, color: cfg.color }}>{fmt(pool.available)}</span>
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Debt</label>
+        <select className="form-select" value={debtId} onChange={e => setDebtId(e.target.value)}>
+          {activeDebts.length === 0
+            ? <option value="">No active debts</option>
+            : activeDebts.map(d => <option key={d.id} value={d.id}>{d.name} ({fmt(d.remaining)} remaining)</option>)}
+        </select>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Amount</label>
+        <input className="form-input" type="number" step="any" min="0"
+          value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Date</label>
+        <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+      </div>
+      <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>Total Payment</span>
+        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: cfg.color }}>{fmt(amountNum)}</span>
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleConfirm}
+          style={{ background: cfg.color, opacity: amountNum > 0 ? 1 : 0.5 }}>
+          Pay Down Debt
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Quick Transfer Modal ─────────────────────────────────────────────────────
 
 function QuickTransferModal({ accounts, pools, onClose, onTransfer }) {
@@ -604,11 +661,18 @@ export function Schedules({ data, updateData, prices }) {
           : g
       ))
     }
+    if (entry.poolId === 'debts' && entry.debtId) {
+      updateData('debts', data.debts.map(d =>
+        d.id === entry.debtId
+          ? { ...d, remaining: (d.remaining || 0) + entry.amount }
+          : d
+      ))
+    }
     updateData('poolDeployments', poolDeployments.filter(d => d.id !== id))
   }
 
-  const handleDeploy = ({ poolId, goalId, asset, units, pricePerUnit, amount, deployedAt }) => {
-    const newDeployment = { id: genId(), poolId, goalId: goalId ?? null, asset: asset ?? null, units: units ?? null, pricePerUnit: pricePerUnit ?? null, amount, deployedAt }
+  const handleDeploy = ({ poolId, goalId, debtId, asset, units, pricePerUnit, amount, deployedAt }) => {
+    const newDeployment = { id: genId(), poolId, goalId: goalId ?? null, debtId: debtId ?? null, asset: asset ?? null, units: units ?? null, pricePerUnit: pricePerUnit ?? null, amount, deployedAt }
 
     updateData('pools', {
       ...pools,
@@ -651,6 +715,13 @@ export function Schedules({ data, updateData, prices }) {
       updateData('goals', data.goals.map(g => {
         if (g.id !== goalId) return g
         return { ...g, poolAllocated: (g.poolAllocated || 0) + amount }
+      }))
+    }
+
+    if (poolId === 'debts') {
+      updateData('debts', data.debts.map(d => {
+        if (d.id !== debtId) return d
+        return { ...d, remaining: Math.max(0, (d.remaining || 0) - amount) }
       }))
     }
 
@@ -955,7 +1026,7 @@ export function Schedules({ data, updateData, prices }) {
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
-            {Object.entries({ ...pools, goals: pools.goals ?? { available: 0, deployedTotal: 0, weeklyContribution: 0 } })
+            {Object.entries({ ...pools, goals: pools.goals ?? { available: 0, deployedTotal: 0, weeklyContribution: 0 }, debts: pools.debts ?? { available: 0, deployedTotal: 0, weeklyContribution: 0 } })
               .filter(([id]) => POOL_CONFIG[id])
               .map(([id, pool]) => (
                 <PoolCard key={id} poolId={id} pool={pool}
@@ -999,7 +1070,9 @@ export function Schedules({ data, updateData, prices }) {
                           </span>
                         </td>
                         <td style={{ fontWeight: 600 }}>
-                          {d.poolId === 'goals'
+                          {d.poolId === 'debts'
+                            ? (data.debts.find(x => x.id === d.debtId)?.name ?? 'Unknown Debt')
+                            : d.poolId === 'goals'
                             ? (data.goals.find(g => g.id === d.goalId)?.name ?? 'Unknown Goal')
                             : d.asset}
                         </td>
@@ -1027,11 +1100,14 @@ export function Schedules({ data, updateData, prices }) {
       {modal && (
         <ScheduleModal item={modal.item} accounts={accounts} onClose={() => setModal(null)} onSave={saveSchedule} />
       )}
-      {deployModal && deployModal !== 'goals' && (
+      {deployModal && deployModal !== 'goals' && deployModal !== 'debts' && (
         <DeployModal poolId={deployModal} pool={pools[deployModal]} data={data} prices={prices} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
       )}
       {deployModal === 'goals' && (
         <GoalsDeployModal pool={pools.goals ?? { available: 0 }} goals={data.goals} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
+      )}
+      {deployModal === 'debts' && (
+        <DebtDeployModal pool={pools.debts ?? { available: 0 }} debts={data.debts} onClose={() => setDeployModal(null)} onDeploy={handleDeploy} />
       )}
       {quickTransferOpen && (
         <QuickTransferModal accounts={accounts} pools={pools} onClose={() => setQuickTransferOpen(false)} onTransfer={handleQuickTransfer} />
