@@ -21,7 +21,7 @@ function PriceCell({ aud }) {
   return <span>{fmtFull(aud)}</span>
 }
 
-function StockRow({ item, price, usdToAud, onEdit, onDelete, onEditVal }) {
+function StockRow({ item, price, usdToAud, onEdit, onDelete, onEditVal, onSell }) {
   const aud = price?.aud ?? null
   const value = aud !== null ? item.shares * aud : null
   const costBasis = item.shares * item.avgCost * usdToAud
@@ -51,6 +51,7 @@ function StockRow({ item, price, usdToAud, onEdit, onDelete, onEditVal }) {
       <td><DollarChange val={change24hDollar} /></td>
       <td>
         <div style={{ display: 'flex', gap: 4 }}>
+          <button className="icon-btn" onClick={() => onSell(item)} title="Sell" style={{ color: 'var(--red)' }}>💰</button>
           <button className="icon-btn" onClick={() => onEdit(item)} title="Edit">✎</button>
           <button className="icon-btn danger" onClick={() => onDelete(item.id)} title="Delete">✕</button>
         </div>
@@ -59,7 +60,7 @@ function StockRow({ item, price, usdToAud, onEdit, onDelete, onEditVal }) {
   )
 }
 
-function ETFRow({ item, price, usdToAud, onEdit, onDelete, onEditVal }) {
+function ETFRow({ item, price, usdToAud, onEdit, onDelete, onEditVal, onSell }) {
   const isUs = item.market === 'US'
   const aud = price?.aud ?? null
   const value = aud !== null ? item.units * aud : null
@@ -89,6 +90,7 @@ function ETFRow({ item, price, usdToAud, onEdit, onDelete, onEditVal }) {
       <td><DollarChange val={change24hDollar} /></td>
       <td>
         <div style={{ display: 'flex', gap: 4 }}>
+          <button className="icon-btn" onClick={() => onSell(item)} title="Sell" style={{ color: 'var(--red)' }}>💰</button>
           <button className="icon-btn" onClick={() => onEdit(item)} title="Edit">✎</button>
           <button className="icon-btn danger" onClick={() => onDelete(item.id)} title="Delete">✕</button>
         </div>
@@ -97,7 +99,7 @@ function ETFRow({ item, price, usdToAud, onEdit, onDelete, onEditVal }) {
   )
 }
 
-function CryptoRow({ item, price, onEdit, onDelete, onEditVal }) {
+function CryptoRow({ item, price, onEdit, onDelete, onEditVal, onSell }) {
   const aud = price?.[item.coinId]?.aud ?? null
   const change24h = price?.[item.coinId]?.aud_24h_change ?? null
   const value = aud !== null ? item.amount * aud : null
@@ -121,6 +123,7 @@ function CryptoRow({ item, price, onEdit, onDelete, onEditVal }) {
       <td><DollarChange val={change24hDollar} /></td>
       <td>
         <div style={{ display: 'flex', gap: 4 }}>
+          <button className="icon-btn" onClick={() => onSell(item)} title="Sell" style={{ color: 'var(--red)' }}>💰</button>
           <button className="icon-btn" onClick={() => onEdit(item)} title="Edit">✎</button>
           <button className="icon-btn danger" onClick={() => onDelete(item.id)} title="Delete">✕</button>
         </div>
@@ -288,6 +291,88 @@ function CryptoModal({ item, onClose, onSave }) {
   )
 }
 
+function SellModal({ asset, assetType, prices, usdToAud, onClose, onSell }) {
+  const getLivePrice = () => {
+    if (assetType === 'crypto') return prices?.crypto?.[asset.coinId]?.aud ?? 0
+    if (assetType === 'stocks') return (prices?.stocks?.[asset.ticker]?.aud) ?? (asset.avgCost * usdToAud)
+    return prices?.etfs?.[asset.ticker]?.aud ?? asset.manualPriceAud ?? 0
+  }
+  const holdingQty = assetType === 'crypto' ? asset.amount : assetType === 'stocks' ? asset.shares : asset.units
+  const [quantity, setQuantity] = useState('')
+  const [priceAud, setPriceAud] = useState(getLivePrice().toFixed(2))
+  const qty = Math.min(parseFloat(quantity) || 0, holdingQty)
+  const price = parseFloat(priceAud) || 0
+  const proceeds = qty * price
+  const costBasisPerUnit = assetType === 'stocks' ? asset.avgCost * usdToAud : asset.avgCost
+  const costBasis = qty * costBasisPerUnit
+  const realizedPL = proceeds - costBasis
+  const isMax = qty >= holdingQty && holdingQty > 0
+
+  const poolMap = { crypto: 'crypto', stocks: 'stocks', etfs: 'etfs' }
+  const poolLabel = { crypto: 'Crypto Pool', stocks: 'Stocks Pool', etfs: 'ETF Pool' }[assetType]
+  const symbol = assetType === 'crypto' ? asset.symbol : asset.ticker
+
+  const handleConfirm = () => {
+    if (qty <= 0 || qty > holdingQty) return
+    onSell({
+      assetType, symbol, name: asset.name,
+      quantity: qty, priceAud: price, proceeds, costBasis, realizedPL,
+      poolId: poolMap[assetType],
+      soldAt: new Date().toISOString(),
+    })
+    onClose()
+  }
+
+  return (
+    <Modal title={`Sell ${symbol}`} onClose={onClose}>
+      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
+        You hold {fmtNum(holdingQty, 6)} {symbol}
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Quantity to sell</label>
+          <input className="form-input" type="number" step="any" min="0" max={holdingQty}
+            value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="0" />
+          <button className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => setQuantity(String(holdingQty))}>
+            Sell Max
+          </button>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Price per unit (AUD)</label>
+          <input className="form-input" type="number" step="any" min="0"
+            value={priceAud} onChange={e => setPriceAud(e.target.value)} />
+        </div>
+      </div>
+      <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '14px 16px', marginTop: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--muted)' }}>Proceeds</span>
+          <span style={{ fontWeight: 700 }}>{fmt(proceeds)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ fontSize: 13, color: 'var(--muted)' }}>Cost Basis</span>
+          <span style={{ color: 'var(--muted)' }}>{fmt(costBasis)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Realized P/L</span>
+          <span style={{ fontWeight: 700, color: realizedPL >= 0 ? 'var(--green)' : 'var(--red)' }}>
+            {realizedPL >= 0 ? '+' : ''}{fmt(realizedPL)}
+          </span>
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}>
+        Proceeds will be credited to your <b>{poolLabel}</b>.
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={handleConfirm} disabled={qty <= 0 || qty > holdingQty}
+          style={{ background: 'var(--red)' }}>
+          Confirm Sell
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
 function TransactionModal({ data, usdToAud, onClose, onSave }) {
   const today = new Date().toISOString().slice(0, 10)
   const [form, setForm] = useState({
@@ -400,6 +485,7 @@ export function Portfolio({ data, updateData, prices }) {
   const [tab, setTab] = useState('stocks')
   const [modal, setModal] = useState(null)
   const [editVal, setEditVal] = useState(null)
+  const [sellModal, setSellModal] = useState(null)
   const [histRange, setHistRange] = useState('1M')
   const [addStage, setAddStage] = useState(null)
 
@@ -605,6 +691,45 @@ export function Portfolio({ data, updateData, prices }) {
       updateData('etfs', updated)
     }
     updateData('transactions', [tx, ...(data.transactions ?? [])])
+  }
+
+  const handleSell = (trade) => {
+    if (trade.assetType === 'crypto') {
+      updateData('crypto', data.crypto.map(c =>
+        c.symbol === trade.symbol ? { ...c, amount: Math.max(0, c.amount - trade.quantity) } : c
+      ))
+    } else if (trade.assetType === 'stocks') {
+      updateData('stocks', data.stocks.map(s =>
+        s.ticker === trade.symbol ? { ...s, shares: Math.max(0, s.shares - trade.quantity) } : s
+      ))
+    } else if (trade.assetType === 'etfs') {
+      updateData('etfs', data.etfs.map(e =>
+        e.ticker === trade.symbol ? { ...e, units: Math.max(0, e.units - trade.quantity) } : e
+      ))
+    }
+
+    const pools = data.pools ?? {}
+    updateData('pools', {
+      ...pools,
+      [trade.poolId]: {
+        ...pools[trade.poolId],
+        available: (pools[trade.poolId]?.available || 0) + trade.proceeds,
+      },
+    })
+
+    const newTrade = {
+      id: genId(),
+      assetType: trade.assetType,
+      symbol: trade.symbol,
+      name: trade.name,
+      quantity: trade.quantity,
+      priceAud: trade.priceAud,
+      proceeds: trade.proceeds,
+      costBasis: trade.costBasis,
+      realizedPL: trade.realizedPL,
+      soldAt: trade.soldAt,
+    }
+    updateData('realizedTrades', [newTrade, ...(data.realizedTrades ?? [])])
   }
 
   const handleEditVal = (item, field, label) => setEditVal({ item, field, label })
@@ -859,6 +984,7 @@ export function Portfolio({ data, updateData, prices }) {
                 onEdit={item => setModal({ type: 'stock', item })}
                 onDelete={id => updateData('stocks', data.stocks.filter(x => x.id !== id))}
                 onEditVal={handleEditVal}
+                onSell={item => setSellModal({ asset: item, assetType: 'stocks' })}
               />
             ))}
           </AssetTable>
@@ -871,6 +997,7 @@ export function Portfolio({ data, updateData, prices }) {
                 onEdit={item => setModal({ type: 'etf', item })}
                 onDelete={id => updateData('etfs', data.etfs.filter(x => x.id !== id))}
                 onEditVal={handleEditVal}
+                onSell={item => setSellModal({ asset: item, assetType: 'etfs' })}
               />
             ))}
           </AssetTable>
@@ -883,6 +1010,7 @@ export function Portfolio({ data, updateData, prices }) {
                 onEdit={item => setModal({ type: 'crypto', item })}
                 onDelete={id => updateData('crypto', data.crypto.filter(x => x.id !== id))}
                 onEditVal={handleEditVal}
+                onSell={item => setSellModal({ asset: item, assetType: 'crypto' })}
               />
             ))}
           </AssetTable>
@@ -975,6 +1103,17 @@ export function Portfolio({ data, updateData, prices }) {
 
       {modal?.type === 'transaction' && (
         <TransactionModal data={data} usdToAud={usdToAud} onClose={() => setModal(null)} onSave={saveTransaction} />
+      )}
+
+      {sellModal && (
+        <SellModal
+          asset={sellModal.asset}
+          assetType={sellModal.assetType}
+          prices={prices}
+          usdToAud={usdToAud}
+          onClose={() => setSellModal(null)}
+          onSell={handleSell}
+        />
       )}
 
       {editVal && (

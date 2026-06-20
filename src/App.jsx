@@ -67,6 +67,7 @@ export default function App() {
       if (!prev.transferLog) extras.transferLog = []
       if (!prev.poolDeployments) extras.poolDeployments = []
       if (!prev.transactions) extras.transactions = []
+      if (!prev.realizedTrades) extras.realizedTrades = []
       if (!prev.monthlyAllocations) extras.monthlyAllocations = []
       if (!prev.projSettings) extras.projSettings = { years: 10, rate: { crypto: 15, etfs: 11, stocks: 15 }, monthly: { crypto: 200, etfs: 500, stocks: 300 } }
       const hasExtras = Object.keys(extras).length > 0 || poolsChanged
