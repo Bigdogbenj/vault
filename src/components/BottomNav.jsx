@@ -46,7 +46,7 @@ const MORE_NAV = [
   },
   {
     id: 'trades', label: 'Trades',
-    icon: <span style={{ fontSize: 16 }}>💰</span>,
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7h13l-3-3M17 17H4l3 3"/><path d="M7 7v5M17 17v-5"/></svg>,
   },
 ]
 
