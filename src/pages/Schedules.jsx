@@ -753,9 +753,9 @@ export function Schedules({ data, updateData, prices }) {
   }
 
   // ── Transfer Summary stats ────────────────────────────────────────────────
-  const { transferGroups, expenseGroups, totalTransferred, totalExpensesPaid, maxTransfer, maxExpense } = useMemo(() => {
+  const { transferGroups, expenseGroups, totalTransferred, totalExpensesPaid, totalIncome, maxTransfer, maxExpense } = useMemo(() => {
     const tMap = {}, eMap = {}
-    let totalT = 0, totalE = 0
+    let totalT = 0, totalE = 0, totalI = 0
     for (const entry of transferLog) {
       if (entry.type === 'transfer') {
         tMap[entry.scheduleName] = tMap[entry.scheduleName] ?? { name: entry.scheduleName, total: 0, count: 0 }
@@ -767,6 +767,8 @@ export function Schedules({ data, updateData, prices }) {
         eMap[entry.scheduleName].total += entry.amount
         eMap[entry.scheduleName].count++
         totalE += entry.amount
+      } else if (entry.type === 'income') {
+        totalI += entry.amount
       }
     }
     const tGroups = Object.values(tMap).sort((a, b) => b.total - a.total)
@@ -776,6 +778,7 @@ export function Schedules({ data, updateData, prices }) {
       expenseGroups: eGroups,
       totalTransferred: totalT,
       totalExpensesPaid: totalE,
+      totalIncome: totalI,
       maxTransfer: tGroups[0]?.total ?? 1,
       maxExpense: eGroups[0]?.total ?? 1,
     }
@@ -784,21 +787,31 @@ export function Schedules({ data, updateData, prices }) {
   // ── Accumulated chart data ────────────────────────────────────────────────
   const chartData = useMemo(() => {
     if (transferLog.length < 2) return []
+    const poolKeys = Object.keys(POOL_CONFIG)
     const byDay = {}
     for (const entry of transferLog) {
       const d = new Date(entry.firedAt)
-      const key = d.toISOString().slice(0, 10) // YYYY-MM-DD
-      byDay[key] = byDay[key] ?? { transfers: 0, expenses: 0, ts: d.getTime(), label: d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }) }
-      if (entry.type === 'transfer') byDay[key].transfers += entry.amount
-      if (entry.type === 'expense') byDay[key].expenses += entry.amount
+      const key = d.toISOString().slice(0, 10)
+      byDay[key] = byDay[key] ?? {
+        ts: d.getTime(),
+        label: d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }),
+        expenses: 0,
+        ...Object.fromEntries(poolKeys.map(k => [k, 0])),
+      }
+      if (entry.type === 'expense') {
+        byDay[key].expenses += entry.amount
+      } else if (entry.type === 'transfer') {
+        const matchedPool = poolKeys.find(k => entry.toLabel === POOL_CONFIG[k].label)
+        if (matchedPool) byDay[key][matchedPool] += entry.amount
+      }
     }
-    let cumT = 0, cumE = 0
+    const cum = { expenses: 0, ...Object.fromEntries(poolKeys.map(k => [k, 0])) }
     return Object.entries(byDay)
       .sort(([, a], [, b]) => a.ts - b.ts)
-      .map(([, { transfers, expenses, label }]) => {
-        cumT += transfers
-        cumE += expenses
-        return { month: label, transfers: Math.round(cumT), expenses: Math.round(cumE) }
+      .map(([, day]) => {
+        cum.expenses += day.expenses
+        poolKeys.forEach(k => { cum[k] += day[k] })
+        return { month: day.label, expenses: Math.round(cum.expenses), ...Object.fromEntries(poolKeys.map(k => [k, Math.round(cum[k])])) }
       })
   }, [transferLog])
 
@@ -914,6 +927,9 @@ export function Schedules({ data, updateData, prices }) {
             </div>
             <div style={{ display: 'flex', gap: 32, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
               <div style={{ fontSize: 13 }}>
+                Total income received: <span style={{ fontWeight: 700, color: '#4caf7d' }}>{fmt(totalIncome)}</span>
+              </div>
+              <div style={{ fontSize: 13 }}>
                 Total invested via transfers: <span style={{ fontWeight: 700, color: 'var(--blue)' }}>{fmt(totalTransferred)}</span>
               </div>
               <div style={{ fontSize: 13 }}>
@@ -925,7 +941,7 @@ export function Schedules({ data, updateData, prices }) {
           {/* Accumulated Transfers chart */}
           <div className="card">
             <div className="section-header">
-              <span className="section-title">Accumulated Transfers Over Time</span>
+              <span className="section-title">Accumulated Deposits Over Time</span>
             </div>
             {chartData.length < 2 ? (
               <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)', fontSize: 13 }}>
@@ -933,35 +949,39 @@ export function Schedules({ data, updateData, prices }) {
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', gap: 20, marginBottom: 12 }}>
-                  {[{ label: 'Transfers', color: '#5b9ef0' }, { label: 'Expenses', color: '#e05b5b' }].map(({ label, color }) => (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 20, height: 3, borderRadius: 2, background: color }} />
-                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{label}</span>
+                <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {Object.entries(POOL_CONFIG).map(([key, cfg]) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 16, height: 3, borderRadius: 2, background: cfg.color }} />
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{cfg.label}</span>
                     </div>
                   ))}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 16, height: 2, borderRadius: 2, background: 'var(--muted)', opacity: 0.5 }} />
+                    <span style={{ fontSize: 12, color: 'var(--muted)', opacity: 0.7 }}>Expenses</span>
+                  </div>
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={chartData}>
                     <defs>
-                      <linearGradient id="gradT" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#5b9ef0" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#5b9ef0" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="gradE" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#e05b5b" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#e05b5b" stopOpacity={0}/>
-                      </linearGradient>
+                      {Object.entries(POOL_CONFIG).map(([key, cfg]) => (
+                        <linearGradient key={key} id={`grad-${key}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={cfg.color} stopOpacity={0.25}/>
+                          <stop offset="95%" stopColor={cfg.color} stopOpacity={0}/>
+                        </linearGradient>
+                      ))}
                     </defs>
                     <XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} width={40} />
+                    <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(1)}k`} width={44} />
                     <Tooltip
                       contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}
-                      formatter={(v, name) => [fmt(v), name === 'transfers' ? 'Transfers' : 'Expenses']}
-                      labelStyle={{ color: 'var(--muted)' }}
+                      formatter={(v, name) => [fmt(v), POOL_CONFIG[name]?.label ?? 'Expenses']}
+                      labelStyle={{ color: 'var(--text)' }}
                     />
-                    <Area type="monotone" dataKey="transfers" stroke="#5b9ef0" strokeWidth={2} fill="url(#gradT)" dot={false} />
-                    <Area type="monotone" dataKey="expenses"  stroke="#e05b5b" strokeWidth={2} fill="url(#gradE)" dot={false} />
+                    {Object.entries(POOL_CONFIG).map(([key, cfg]) => (
+                      <Area key={key} type="monotone" dataKey={key} stroke={cfg.color} fill={`url(#grad-${key})`} strokeWidth={2} />
+                    ))}
+                    <Area type="monotone" dataKey="expenses" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="4 3" fill="none" />
                   </AreaChart>
                 </ResponsiveContainer>
               </>
