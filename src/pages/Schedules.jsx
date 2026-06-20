@@ -801,7 +801,8 @@ export function Schedules({ data, updateData, prices }) {
       if (entry.type === 'expense') {
         byDay[key].expenses += entry.amount
       } else if (entry.type === 'transfer') {
-        const matchedPool = poolKeys.find(k => entry.toLabel === POOL_CONFIG[k].label)
+        const normalize = s => (s ?? '').toLowerCase().replace(/[^a-z]/g, '')
+        const matchedPool = poolKeys.find(k => normalize(entry.toLabel) === normalize(POOL_CONFIG[k].label))
         if (matchedPool) byDay[key][matchedPool] += entry.amount
       }
     }
