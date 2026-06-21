@@ -801,8 +801,15 @@ export function Schedules({ data, updateData, prices }) {
       if (entry.type === 'expense') {
         byDay[key].expenses += entry.amount
       } else if (entry.type === 'transfer') {
-        const normalize = s => (s ?? '').toLowerCase().replace(/[^a-z]/g, '')
-        const matchedPool = poolKeys.find(k => normalize(entry.toLabel) === normalize(POOL_CONFIG[k].label))
+        const LABEL_ALIASES = {
+          crypto: ['crypto pool'],
+          stocks: ['stocks pool', 'stock pool'],
+          etfs:   ['etf pool', 'etfs pool'],
+          goals:  ['goals pool', 'goal pool'],
+          debts:  ['debt pool', 'debts pool'],
+        }
+        const normalize = s => (s ?? '').toLowerCase().trim()
+        const matchedPool = poolKeys.find(k => LABEL_ALIASES[k].includes(normalize(entry.toLabel)))
         if (matchedPool) byDay[key][matchedPool] += entry.amount
       }
     }
