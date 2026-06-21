@@ -44,6 +44,12 @@ export function VaultRankPage({ data, updateData, prices }) {
 
   const rankHistory = data.rankHistory ?? []
 
+  const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
+  const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
+  const portfolioTotal = investorValue + cryptoValue
+  const debtRatio = (totalDebt + totalBalance) > 0 ? (totalDebt / (totalDebt + totalBalance)) * 100 : 0
+  const prestigeScore = ['F', 'D', 'C', 'B', 'A', 'S'].indexOf(rank.grade) + (xpPct / 100)
+
   useEffect(() => {
     if (!rank?.grade) return
     const prevGrade = data.currentRankGrade ?? 'F'
@@ -56,18 +62,34 @@ export function VaultRankPage({ data, updateData, prices }) {
       achievedAt: new Date().toISOString(),
       daysSpent,
     }]
+    const newSnapshot = {
+      id: `ms-${Date.now()}`,
+      date: new Date().toISOString(),
+      trigger: 'rank-up',
+      note: `Promoted to Rank ${rank.grade}`,
+      rank: rank.grade,
+      stats: {
+        netWorth: trueNetWorth,
+        invested: investedCostBasis,
+        debt: debtTotalRemain,
+        savingsRate,
+        daysActive,
+        liquidityMonths,
+        attackPerMonth: savings,
+        defencePct,
+        yieldPct: savingsRate,
+        powerTotal: portfolioTotal,
+        prestigeScore,
+        debtRatio,
+      },
+    }
     updateData({
       rankAchievedAt: new Date().toISOString(),
       rankHistory: newHistory,
       currentRankGrade: rank.grade,
+      milestoneSnapshots: [...(data.milestoneSnapshots ?? []), newSnapshot],
     })
   }, [rank.grade])
-
-  const liquidityMonths = totalExpenses > 0 ? saverValue / totalExpenses : null
-  const defencePct = totalExpenses > 0 ? Math.min(100, (saverValue / (totalExpenses * 6)) * 100) : 0
-  const portfolioTotal = investorValue + cryptoValue
-  const debtRatio = (totalDebt + totalBalance) > 0 ? (totalDebt / (totalDebt + totalBalance)) * 100 : 0
-  const prestigeScore = ['F', 'D', 'C', 'B', 'A', 'S'].indexOf(rank.grade) + (xpPct / 100)
 
   const cryptoROI = useMemo(() => {
     return data.crypto.reduce((s, c) => {
@@ -141,6 +163,32 @@ export function VaultRankPage({ data, updateData, prices }) {
     }
   }, [data.vault_daily_snapshots, saverValue, investorValue])
 
+  const [snapshotModalOpen, setSnapshotModalOpen] = useState(false)
+  const saveManualSnapshot = (note) => {
+    const newSnapshot = {
+      id: `ms-${Date.now()}`,
+      date: new Date().toISOString(),
+      trigger: 'manual',
+      note: note || '',
+      rank: rank.grade,
+      stats: {
+        netWorth: trueNetWorth,
+        invested: investedCostBasis,
+        debt: debtTotalRemain,
+        savingsRate,
+        daysActive,
+        liquidityMonths,
+        attackPerMonth: savings,
+        defencePct,
+        yieldPct: savingsRate,
+        powerTotal: portfolioTotal,
+        prestigeScore,
+        debtRatio,
+      },
+    }
+    updateData('milestoneSnapshots', [...(data.milestoneSnapshots ?? []), newSnapshot])
+  }
+
   return (
     <div className="page">
       <VaultRankMap
@@ -173,7 +221,11 @@ export function VaultRankPage({ data, updateData, prices }) {
         debtPctPaid={debtPctPaid} trueNetWorth={trueNetWorth} superValue={superValue}
         liquidNetWorth={liquidNetWorth} updateData={updateData}
       />
+      <MilestoneSnapshots snapshots={data.milestoneSnapshots} onSaveClick={() => setSnapshotModalOpen(true)} />
       <MilestoneHistory log={data.achievementLog} rankHistory={rankHistory} />
+      {snapshotModalOpen && (
+        <SaveSnapshotModal onClose={() => setSnapshotModalOpen(false)} onSave={saveManualSnapshot} />
+      )}
     </div>
   )
 }
@@ -528,5 +580,106 @@ function MilestoneHistory({ log, rankHistory }) {
         </div>
       )}
     </div>
+  )
+}
+
+const STAT_DEFS = [
+  { key: 'netWorth',        label: 'Net Worth',    color: '#fbbf24', fmt: v => fmt(v) },
+  { key: 'invested',        label: 'Invested',     color: '#4ade80', fmt: v => fmt(v) },
+  { key: 'debt',            label: 'Debt',         color: '#f87171', fmt: v => fmt(v) },
+  { key: 'savingsRate',     label: 'Savings Rate', color: '#fbbf24', fmt: v => `${Math.round(v ?? 0)}%` },
+  { key: 'daysActive',      label: 'Days Active',  color: '#fbbf24', fmt: v => `${v ?? 0}d` },
+  { key: 'liquidityMonths', label: 'Liquidity',    color: '#60a5fa', fmt: v => v != null ? `${v.toFixed(1)} mo` : '—' },
+  { key: 'attackPerMonth',  label: 'Attack',       color: '#4ade80', fmt: v => `${fmt(v)}/mo` },
+  { key: 'powerTotal',      label: 'Power',        color: '#4ade80', fmt: v => fmt(v) },
+  { key: 'yieldPct',        label: 'Yield',        color: '#60a5fa', fmt: v => `${Math.round(v ?? 0)}%` },
+  { key: 'defencePct',      label: 'Defence',      color: '#f87171', fmt: v => `${Math.round(v ?? 0)}%` },
+  { key: 'debtRatio',       label: 'Debt Ratio',   color: '#f87171', fmt: v => `${Math.round(v ?? 0)}%` },
+  { key: 'prestigeScore',   label: 'Prestige',     color: '#60a5fa', fmt: v => `${(v ?? 0).toFixed(1)}/6` },
+]
+
+function MilestoneSnapshots({ snapshots, onSaveClick }) {
+  const [expanded, setExpanded] = useState(false)
+  const sorted = [...(snapshots ?? [])].sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: expanded ? 20 : 0 }}>
+        <div onClick={() => setExpanded(e => !e)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 14, color: 'var(--muted)', transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▶</span>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--muted)', marginBottom: 4 }}>Milestone Snapshots</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>{sorted.length} saved · your stats, frozen in time</div>
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={onSaveClick}>+ Save Snapshot</button>
+      </div>
+
+      {expanded && (
+        sorted.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>
+            No snapshots yet — save one to start your timeline.
+          </div>
+        ) : (
+          <div style={{ position: 'relative', paddingLeft: 28 }}>
+            <div style={{
+              position: 'absolute', left: 8, top: 4, bottom: 4,
+              width: 2, background: 'rgba(240,165,0,0.25)', borderRadius: 1,
+            }} />
+            {sorted.map((s, i) => {
+              const color = GRADE_COLORS[s.rank] ?? 'var(--amber)'
+              const date = new Date(s.date)
+              const dateStr = date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+              return (
+                <div key={s.id} style={{ marginBottom: i < sorted.length - 1 ? 18 : 0, position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute', left: -24, top: 5,
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: color, flexShrink: 0,
+                    boxShadow: `0 0 6px ${color}60`,
+                  }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                    <div>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1,
+                        color, background: `${color}18`, padding: '2px 8px', borderRadius: 10, marginRight: 8,
+                      }}>
+                        {s.trigger === 'rank-up' ? `Rank ${s.rank}` : 'Manual'}
+                      </span>
+                      {s.note && <span style={{ fontSize: 13, fontWeight: 600 }}>{s.note}</span>}
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>{dateStr}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 6 }}>
+                    {STAT_DEFS.map(def => (
+                      <div key={def.key} style={{ background: `${def.color}0f`, border: `1px solid ${def.color}2e`, borderRadius: 8, padding: '5px 7px' }}>
+                        <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: def.color, opacity: 0.65, marginBottom: 2 }}>{def.label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: def.color }}>{def.fmt(s.stats?.[def.key])}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
+      )}
+    </div>
+  )
+}
+
+function SaveSnapshotModal({ onClose, onSave }) {
+  const [note, setNote] = useState('')
+  return (
+    <Modal title="Save Snapshot" onClose={onClose} size="modal-sm">
+      <div className="form-group">
+        <label className="form-label">Note (optional)</label>
+        <input className="form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="Turned 27, started new job..." autoFocus />
+      </div>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button className="btn btn-primary" onClick={() => { onSave(note); onClose() }}>Save Snapshot</button>
+      </div>
+    </Modal>
   )
 }
