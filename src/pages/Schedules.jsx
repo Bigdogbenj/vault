@@ -16,6 +16,8 @@ const POOL_CONFIG = {
   goals:  { label: 'Goals Pool',   color: '#f0a500', icon: '🎯' },
   debts:  { label: 'Debt Pool',    color: '#e05b5b', icon: '⚔️' },
 }
+const SUPER_CONFIG = { label: 'Super', color: '#2dd4bf' }
+const SUPER_ALIASES = ['super', 'superannuation']
 
 const TYPE_CONFIG = {
   income:   { color: '#4caf7d', bg: 'rgba(76,175,125,0.12)',  border: '#4caf7d', label: 'Income'   },
@@ -796,6 +798,7 @@ export function Schedules({ data, updateData, prices }) {
         ts: d.getTime(),
         label: d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' }),
         expenses: 0,
+        super: 0,
         ...Object.fromEntries(poolKeys.map(k => [k, 0])),
       }
       if (entry.type === 'expense') {
@@ -811,15 +814,19 @@ export function Schedules({ data, updateData, prices }) {
         const normalize = s => (s ?? '').toLowerCase().trim()
         const matchedPool = poolKeys.find(k => LABEL_ALIASES[k].includes(normalize(entry.toLabel)))
         if (matchedPool) byDay[key][matchedPool] += entry.amount
+      } else if (entry.type === 'income') {
+        const normalizeIncome = s => (s ?? '').toLowerCase().trim()
+        if (SUPER_ALIASES.includes(normalizeIncome(entry.toLabel))) byDay[key].super += entry.amount
       }
     }
-    const cum = { expenses: 0, ...Object.fromEntries(poolKeys.map(k => [k, 0])) }
+    const cum = { expenses: 0, super: 0, ...Object.fromEntries(poolKeys.map(k => [k, 0])) }
     return Object.entries(byDay)
       .sort(([, a], [, b]) => a.ts - b.ts)
       .map(([, day]) => {
         cum.expenses += day.expenses
+        cum.super += day.super
         poolKeys.forEach(k => { cum[k] += day[k] })
-        return { month: day.label, expenses: Math.round(cum.expenses), ...Object.fromEntries(poolKeys.map(k => [k, Math.round(cum[k])])) }
+        return { month: day.label, expenses: Math.round(cum.expenses), super: Math.round(cum.super), ...Object.fromEntries(poolKeys.map(k => [k, Math.round(cum[k])])) }
       })
   }, [transferLog])
 
@@ -965,6 +972,10 @@ export function Schedules({ data, updateData, prices }) {
                     </div>
                   ))}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 16, height: 3, borderRadius: 2, background: SUPER_CONFIG.color }} />
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{SUPER_CONFIG.label}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{ width: 16, height: 2, borderRadius: 2, background: 'var(--muted)', opacity: 0.5 }} />
                     <span style={{ fontSize: 12, color: 'var(--muted)', opacity: 0.7 }}>Expenses</span>
                   </div>
@@ -978,17 +989,22 @@ export function Schedules({ data, updateData, prices }) {
                           <stop offset="95%" stopColor={cfg.color} stopOpacity={0}/>
                         </linearGradient>
                       ))}
+                      <linearGradient id="grad-super" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={SUPER_CONFIG.color} stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor={SUPER_CONFIG.color} stopOpacity={0}/>
+                      </linearGradient>
                     </defs>
                     <XAxis dataKey="month" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `$${(v/1000).toFixed(1)}k`} width={44} />
                     <Tooltip
                       contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}
-                      formatter={(v, name) => [fmt(v), POOL_CONFIG[name]?.label ?? 'Expenses']}
+                      formatter={(v, name) => [fmt(v), name === 'super' ? SUPER_CONFIG.label : (POOL_CONFIG[name]?.label ?? 'Expenses')]}
                       labelStyle={{ color: 'var(--text)' }}
                     />
                     {Object.entries(POOL_CONFIG).map(([key, cfg]) => (
                       <Area key={key} type="monotone" dataKey={key} stroke={cfg.color} fill={`url(#grad-${key})`} strokeWidth={2} />
                     ))}
+                    <Area type="monotone" dataKey="super" stroke={SUPER_CONFIG.color} fill="url(#grad-super)" strokeWidth={2} />
                     <Area type="monotone" dataKey="expenses" stroke="var(--muted)" strokeWidth={1.5} strokeDasharray="4 3" fill="none" />
                   </AreaChart>
                 </ResponsiveContainer>
