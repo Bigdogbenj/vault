@@ -256,13 +256,13 @@ export function VaultRankMap({
                 {nextRankGrade ? `Progress to Rank ${nextRankGrade}` : 'Maximum rank achieved'}
               </span>
               <span style={{ fontSize: 10, fontWeight: 700, color: nextRankGrade ? RANK_COLORS[nextRankGrade] : rankColor }}>
-                {Math.round(rankProgress * 100)}%
+                {Number.isFinite(rankProgress) ? Math.round(rankProgress * 100) : 0}%
               </span>
             </div>
             <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
               <div style={{
                 height: '100%', borderRadius: 3,
-                width: `${Math.round(rankProgress * 100)}%`,
+                width: `${Number.isFinite(rankProgress) ? Math.round(rankProgress * 100) : 0}%`,
                 background: nextRankGrade
                   ? `linear-gradient(90deg, #7c3aed, ${RANK_COLORS[nextRankGrade]})`
                   : rankColor,
@@ -307,7 +307,7 @@ export function VaultRankMap({
       </div>
 
       {/* ── STATS + MAP ── */}
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+      <div className="vrm-stats-map-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
 
         {/* LEFT COLUMN */}
         <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -505,6 +505,16 @@ export function VaultRankMap({
           </div>
         )}
       </div>
+      <style>{`
+        @media (max-width: 700px) {
+          .vrm-stats-map-row {
+            flex-direction: column !important;
+          }
+          .vrm-stats-map-row > div {
+            width: 100% !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
