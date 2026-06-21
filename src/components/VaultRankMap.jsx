@@ -152,6 +152,16 @@ export function VaultRankMap({
 }) {
   const [selectedRank, setSelectedRank] = useState(currentRank)
   const scrollRef = useRef(null)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 700 : false
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 700px)')
+    const handleChange = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', handleChange)
+    return () => mq.removeEventListener('change', handleChange)
+  }, [])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -307,22 +317,22 @@ export function VaultRankMap({
       </div>
 
       {/* ── STATS + MAP ── */}
-      <div className="vrm-stats-map-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'flex-start', gap: isMobile ? 12 : 8 }}>
 
         {/* LEFT COLUMN */}
-        <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ width: isMobile ? '100%' : 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#fbbf24' }}>Core</div>
           <Tile color="#fbbf24" label="Net Worth"    value={fmt(netWorth)}                 sub="net worth"       />
           <Tile color="#fbbf24" label="Savings Rate" value={`${Math.round(savingsRate)}%`} sub="income retained" />
           <Tile color="#fbbf24" label="Days Active" value={`${daysActive}d`}               sub="days active"     />
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#60a5fa', marginTop: 4 }}>Utility</div>
           <Tile color="#60a5fa" label="Liquidity" value={liquidityMonths != null ? `${liquidityMonths.toFixed(1)} mo` : '—'} sub="months runway" />
-          <Tile color="#60a5fa" label="Prestige"  value={`${prestigeScore.toFixed(1)}/6`} sub="vault mastery" />
+          <Tile color="#60a5fa" label="Prestige"  value={`${Number.isFinite(prestigeScore) ? prestigeScore.toFixed(1) : '0.0'}/6`} sub="vault mastery" />
           <Tile color="#60a5fa" label="Yield"     value={`${Math.round(yieldPct)}%`}       sub="income retained" />
         </div>
 
         {/* CENTRE MAP */}
-        <div style={{ flex: 1, position: 'relative', height: 420 }}>
+        <div style={{ flex: isMobile ? 'none' : 1, width: isMobile ? '100%' : 'auto', position: 'relative', height: 420 }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)', zIndex: 1, pointerEvents: 'none' }} />
           <div ref={scrollRef} style={{ height: '100%', width: '100%', overflowY: 'scroll', overflowX: 'hidden', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -385,7 +395,7 @@ export function VaultRankMap({
         </div>
 
         {/* RIGHT COLUMN */}
-        <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ width: isMobile ? '100%' : 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: '#4ade80' }}>Offense</div>
           <Tile color="#4ade80" label="Attack"   value={`${fmt(attackPerMonth)}/mo`} sub="monthly deploy"  />
           <Tile color="#4ade80" label="Power"    value={fmt(powerTotal)}             sub="total portfolio" />
@@ -492,29 +502,19 @@ export function VaultRankMap({
                 Progress to Rank {nextRankGrade}
               </span>
               <span style={{ fontSize: 10, fontWeight: 700, color: RANK_COLORS[nextRankGrade] }}>
-                {Math.round(rankProgress * 100)}%
+                {Number.isFinite(rankProgress) ? Math.round(rankProgress * 100) : 0}%
               </span>
             </div>
             <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 3 }}>
               <div style={{
                 height: '100%', borderRadius: 3,
-                width: `${Math.min(100, rankProgress * 100)}%`,
+                width: `${Number.isFinite(rankProgress) ? Math.min(100, rankProgress * 100) : 0}%`,
                 background: `linear-gradient(90deg, #7c3aed, ${RANK_COLORS[nextRankGrade]})`,
               }} />
             </div>
           </div>
         )}
       </div>
-      <style>{`
-        @media (max-width: 700px) {
-          .vrm-stats-map-row {
-            flex-direction: column !important;
-          }
-          .vrm-stats-map-row > div {
-            width: 100% !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }
